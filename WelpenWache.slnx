@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="WelpenWache.Core/WelpenWache.Core.csproj" />
+  <Project Path="WelpenWache/WelpenWache.csproj" />
+</Solution>

@@ -1,0 +1,126 @@
+﻿@using WelpenWache.Core.Features.Intern.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using WelpenWache.Core
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @* Header mit Datum und Statistik *@
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, #594ae2 0%, #7c3aed 100%); color: white; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Large"/>
+                        <MudText Typo="Typo.h6">@Date</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Style="opacity: 0.9;">
+                        @Count Praktikant@(Count != 1 ? "en" : "") anwesend
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* Praktikanten-Liste *@
+            <MudGrid Spacing="2">
+                @foreach (var intern in Interns)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Elevation="2" Class="pa-3 intern-dialog-card">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                @* Avatar mit Initialen *@
+                                <MudAvatar Color="Color.Primary" Size="Size.Large" Style="background: linear-gradient(135deg, #594ae2 0%, #7c3aed 100%);">
+                                    @GetInitials(intern.Name, intern.Surname)
+                                </MudAvatar>
+                                
+                                @* Name und Details *@
+                                <MudStack Spacing="1" Style="flex: 1;">
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                        @intern.Name @intern.Surname
+                                    </MudText>
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.DateRange">
+                                            @intern.StartDate.ToString("dd.MM.yy") - @intern.EndDate.ToString("dd.MM.yy")
+                                        </MudChip>
+                                        <MudChip T="string" Size="Size.Small" Color="@(IsActiveToday(intern) ? Color.Success : Color.Default)" 
+                                                 Icon="@(IsActiveToday(intern) ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Circle)">
+                                            @(IsActiveToday(intern) ? "Heute aktiv" : GetDaysRemaining(intern))
+                                        </MudChip>
+                                    </MudStack>
+                                </MudStack>
+                            </MudStack>
+                            
+                            @* Progress Bar *@
+                            <MudProgressLinear Color="Color.Primary" 
+                                              Value="@GetProgress(intern)" 
+                                              Class="mt-2" 
+                                              Rounded="true"
+                                              Size="Size.Small"/>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Schließen</MudButton>
+        <AuthorizeView Policy="@Policies.Intern.CanRead">
+            <Authorized>
+                <MudButton OnClick="NavigateToManage" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ManageAccounts">
+                    Zur Verwaltung
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public List<InternDto> Interns { get; set; } = [];
+
+    [Parameter]
+    public string Date { get; set; } = string.Empty;
+
+    [Parameter]
+    public int Count { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void NavigateToManage() => MudDialog.Close(DialogResult.Ok(true));
+
+    private static string GetInitials(string name, string surname) {
+        var firstInitial = !string.IsNullOrEmpty(name) ? name[0].ToString().ToUpper() : "?";
+        var lastInitial = !string.IsNullOrEmpty(surname) ? surname[0].ToString().ToUpper() : "?";
+        return firstInitial + lastInitial;
+    }
+
+    private static bool IsActiveToday(InternDto intern) {
+        var today = DateTime.Today;
+        return intern.StartDate.Date <= today && intern.EndDate.Date >= today;
+    }
+
+    private static double GetProgress(InternDto intern) {
+        var total = (intern.EndDate - intern.StartDate).TotalDays;
+        var elapsed = (DateTime.Today - intern.StartDate).TotalDays;
+        return Math.Min(100, Math.Max(0, (elapsed / total) * 100));
+    }
+
+    private static string GetDaysRemaining(InternDto intern) {
+        var today = DateTime.Today;
+        if (intern.EndDate.Date < today) {
+            var daysAgo = (today - intern.EndDate.Date).Days;
+            return $"Beendet vor {daysAgo} Tag{(daysAgo != 1 ? "en" : "")}";
+        }
+        if (intern.StartDate.Date > today) {
+            var daysUntil = (intern.StartDate.Date - today).Days;
+            return $"Beginnt in {daysUntil} Tag{(daysUntil != 1 ? "en" : "")}";
+        }
+        return "Status unbekannt";
+    }
+}
+
+
+
+
+
+

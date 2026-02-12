@@ -1,0 +1,13 @@
+.appbarIconButton span {
+    color: inherit;
+}
+
+html, body {
+    height: 100%;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}

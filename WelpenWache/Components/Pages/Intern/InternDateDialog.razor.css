@@ -1,0 +1,15 @@
+﻿.intern-dialog-card {
+    transition: all 0.2s ease;
+    border-radius: 12px;
+    border-left: 4px solid #594ae2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.intern-dialog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(89, 74, 226, 0.2) !important;
+    border-left-width: 6px;
+}
+

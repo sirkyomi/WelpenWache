@@ -1,0 +1,127 @@
+﻿@using WelpenWache.Core.Features.Intern
+@using WelpenWache.Core.Features.Intern.Models
+@inject ISnackbar Snackbar
+@inject IInternService InternService
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Spacing="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" Size="Size.Large"/>
+                <MudText Typo="Typo.h5">
+                    Neuer Praktikant
+                </MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-11">
+                Fügen Sie einen neuen Praktikanten zum System hinzu
+            </MudText>
+        </MudStack>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isvalid" ValidationDelay="0">
+            <MudStack Spacing="4" Class="mt-2">
+                
+                @* Persönliche Informationen *@
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Small"/>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            Persönliche Informationen
+                        </MudText>
+                    </MudStack>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_name" 
+                                          Label="Vorname" 
+                                          Required 
+                                          RequiredError="Vorname erforderlich"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          OnKeyDown="HandleKeyDown"/>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_surname" 
+                                          Label="Nachname" 
+                                          Required
+                                          RequiredError="Nachname erforderlich" 
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          OnKeyDown="HandleKeyDown"/>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+                
+                <MudDivider/>
+                
+                @* Praktikumszeitraum *@
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.DateRange" Color="Color.Primary" Size="Size.Small"/>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            Praktikumszeitraum
+                        </MudText>
+                    </MudStack>
+                    <MudDateRangePicker @bind-DateRange="_range"
+                                        Label="Zeitraum wählen" 
+                                        PickerVariant="PickerVariant.Inline" 
+                                        Required
+                                        RequiredError="Zeitraum erforderlich" 
+                                        Variant="Variant.Outlined"
+                                        Modal="false"
+                                        Placeholder="Von - Bis"
+                                        Editable="true"/>
+                </MudStack>
+                
+                @if (!_isvalid)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Filled.Info" Class="mt-2">
+                        Bitte füllen Sie alle Pflichtfelder aus
+                    </MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.Close">
+            Abbrechen
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled"
+                   Disabled="@(!_isvalid)" 
+                   OnClick="CreateInternAsync"
+                   StartIcon="@Icons.Material.Filled.Check">
+            Hinzufügen
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private string? _name;
+    private string? _surname;
+    private DateRange _range = null!;
+    private bool _isvalid;
+    
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task HandleKeyDown(KeyboardEventArgs e) {
+        if (e.Key == "Enter" && _isvalid) {
+            await CreateInternAsync();
+        }
+    }
+
+    private async Task CreateInternAsync() {
+        if (!_isvalid) return;
+        
+        var id = await InternService.CreateInternAsync(new InternCreateRequest(_name!, _surname!, _range.Start!.Value, _range.End!.Value));
+        Snackbar.Add("Praktikant erfolgreich erstellt", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(id));
+    }
+
+}

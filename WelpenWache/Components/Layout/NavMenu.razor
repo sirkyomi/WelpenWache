@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using WelpenWache.Core
+@using WelpenWache.Core.Services
+@inject SetupService SetupService
+
+<MudNavMenu Rounded="true" Bordered="true" Margin="Margin.Dense" Class="pa-2 nav-menu">
+    <AuthorizeView Policy="@Policies.Intern.CanRead" Context="readAuth">
+        <Authorized>
+            <MudNavGroup Title="Praktikanten" Icon="@Icons.Material.Filled.ChildCare" Expanded Disabled="@_setupRequired">
+                <MudNavLink Href="intern/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All" Disabled="@_setupRequired">Übersicht</MudNavLink>
+                <MudNavLink Href="intern/manage" Icon="@Icons.Material.Filled.AllInbox" Match="NavLinkMatch.All" Disabled="@_setupRequired">Verwalten</MudNavLink>
+            </MudNavGroup>
+        </Authorized>
+    </AuthorizeView>
+    <MudNavGroup Title="Auszubildende" Icon="@Icons.Material.Filled.BusinessCenter" Disabled>
+        <MudNavLink Href="trainee/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Übersicht</MudNavLink>
+        <MudNavLink Href="trainee/manage" Icon="@Icons.Material.Filled.AllInbox" Match="NavLinkMatch.All">Verwalten</MudNavLink>
+    </MudNavGroup>
+    <MudSpacer/>
+    <MudNavLink Href="settings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Settings" Disabled="@_setupRequired">Einstellungen
+    </MudNavLink>
+</MudNavMenu>
+
+@code {
+    private bool _setupRequired = false;
+
+    protected override async Task OnInitializedAsync() {
+        _setupRequired = await SetupService.IsSetupRequiredAsync();
+    }
+}

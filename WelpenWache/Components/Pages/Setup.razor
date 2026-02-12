@@ -1,0 +1,125 @@
+﻿@page "/setup"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using WelpenWache.Core.Services
+@attribute [AllowAnonymous]
+@inject SetupService SetupService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>WelpenWache - Ersteinrichtung</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            Willkommen bei WelpenWache
+        </MudText>
+        
+        @if (_setupRequired) {
+            @if (!_setupComplete) {
+                <MudText Typo="Typo.body1" Class="mt-4 mb-6" Align="Align.Center">
+                    Dies ist die Ersteinrichtung. Sie werden als Administrator mit allen Berechtigungen registriert.
+                </MudText>
+
+                @if (!string.IsNullOrEmpty(_username)) {
+                    <MudText Typo="Typo.body2" Class="mb-4" Align="Align.Center">
+                        <strong>Angemeldeter Benutzer:</strong> @_username
+                    </MudText>
+                }
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           OnClick="CompleteSetupAsync"
+                           Disabled="@_processing">
+                    @if (_processing) {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        <span>Wird eingerichtet...</span>
+                    }
+                    else {
+                        <span>Setup abschließen</span>
+                    }
+                </MudButton>
+            }
+            else {
+                <MudText Typo="Typo.body1" Class="mt-4 mb-6" Align="Align.Center" Color="Color.Success">
+                    Setup erfolgreich abgeschlossen! Sie werden weitergeleitet...
+                </MudText>
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+            }
+        }
+        else {
+            <MudText Typo="Typo.body1" Class="mt-4" Align="Align.Center">
+                Setup wurde bereits durchgeführt. Sie werden zur Startseite weitergeleitet...
+            </MudText>
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private bool _setupRequired = false;
+    private bool _setupComplete = false;
+    private bool _processing = false;
+    private string? _username;
+    private string? _sid;
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+
+        _setupRequired = await SetupService.IsSetupRequiredAsync();
+
+        if (!_setupRequired) {
+            // If setup has already been completed, redirect to home page
+            await Task.Delay(1000);
+            NavigationManager.NavigateTo("/", true);
+            return;
+        }
+
+        // Retrieve user information
+        if (AuthenticationState != null) {
+            var authState = await AuthenticationState;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true) {
+                _username = user.Identity.Name;
+                _sid = user.FindFirst(ClaimTypes.PrimarySid)?.Value;
+            }
+        }
+    }
+
+    private async Task CompleteSetupAsync() {
+        if (string.IsNullOrEmpty(_sid)) {
+            Snackbar.Add("Fehler: Benutzer-SID konnte nicht ermittelt werden.", Severity.Error);
+            return;
+        }
+
+        _processing = true;
+
+        try {
+            await SetupService.CreateAdminUserAsync(_sid);
+            _setupComplete = true;
+            Snackbar.Add("Setup erfolgreich abgeschlossen! Sie haben jetzt Administrator-Rechte.", Severity.Success);
+
+            // Wait briefly and then reload so permissions are loaded
+            await Task.Delay(2000);
+            NavigationManager.NavigateTo("/", true);
+        }
+        catch (Exception ex) {
+            Snackbar.Add($"Fehler beim Setup: {ex.Message}", Severity.Error);
+            _processing = false;
+        }
+    }
+
+}
+
+
+
+
+
+
+
