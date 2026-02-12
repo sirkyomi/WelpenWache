@@ -1,7 +1,6 @@
 ﻿@page "/intern/dashboard"
+@page "/"
 @using System.Globalization
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using WelpenWache.Core
 @using WelpenWache.Core.Features.Intern
 @using WelpenWache.Core.Features.Intern.Models
@@ -12,7 +11,7 @@
 <PageTitle>WelpenWache - Dashboard</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
-    
+
     @* Header *@
     <MudPaper Elevation="4" Class="pa-6 mb-6">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
@@ -22,23 +21,24 @@
                     <MudText Typo="Typo.h4">Praktikanten-Dashboard</MudText>
                 </MudStack>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary ml-11">
-                    Übersicht für @(_selectedDate.HasValue ? _selectedDate.Value.ToString("MMMM yyyy", new CultureInfo("de-DE")) : "")
+                    Übersicht
+                    für @(_selectedDate.HasValue ? _selectedDate.Value.ToString("MMMM yyyy", new CultureInfo("de-DE")) : "")
                 </MudText>
             </MudStack>
             <MudStack Row="true" Spacing="3">
-                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" 
-                               Color="Color.Primary" 
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                               Color="Color.Primary"
                                Size="Size.Large"
                                OnClick="PreviousMonth"/>
-                <MudDatePicker @bind-Date="_selectedDate" 
+                <MudDatePicker @bind-Date="_selectedDate"
                                Label="Monat wählen"
                                OpenTo="OpenTo.Month"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
                                Color="Color.Primary"
                                Style="width: 200px;"/>
-                <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" 
-                               Color="Color.Primary" 
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                               Color="Color.Primary"
                                Size="Size.Large"
                                OnClick="NextMonth"/>
             </MudStack>
@@ -46,7 +46,7 @@
     </MudPaper>
 
     <MudGrid Spacing="4">
-        
+
         @* Statistik Cards *@
         <MudItem xs="12" md="3">
             <MudPaper Elevation="2" Class="pa-4">
@@ -94,7 +94,8 @@
                         <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning"/>
                         <MudText Typo="Typo.h6">Max. Auslastung</MudText>
                     </MudStack>
-                    <MudText Typo="Typo.h3" Color="@(GetMaxSimultaneous() > 3 ? Color.Warning : Color.Default)">@GetMaxSimultaneous()</MudText>
+                    <MudText Typo="Typo.h3"
+                             Color="@(GetMaxSimultaneous() > 3 ? Color.Warning : Color.Default)">@GetMaxSimultaneous()</MudText>
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">Gleichzeitig anwesend</MudText>
                 </MudStack>
             </MudPaper>
@@ -108,27 +109,24 @@
                         <MudIcon Icon="@Icons.Material.Filled.CalendarViewMonth" Color="Color.Primary"/>
                         <MudText Typo="Typo.h6">Monatsübersicht</MudText>
                     </MudStack>
-                    
+
                     <MudDivider/>
 
                     @* Kalender Grid *@
                     <div class="calendar-grid">
                         @* Wochentage Header *@
-                        @foreach (var day in new[] { "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" })
-                        {
+                        @foreach (var day in new[] { "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" }) {
                             <div class="calendar-header">@day</div>
                         }
 
                         @* Tage *@
-                        @for (int i = 0; i < GetMonthStartOffset(); i++)
-                        {
+                        @for (int i = 0; i < GetMonthStartOffset(); i++) {
                             <div class="calendar-day empty"></div>
                         }
 
-                        @for (int day = 1; day <= GetDaysInMonth(); day++)
-                        {
+                        @for (int day = 1; day <= GetDaysInMonth(); day++) {
                             if (!_selectedDate.HasValue) continue;
-                            
+
                             var currentDay = day;
                             var date = new DateTime(_selectedDate.Value.Year, _selectedDate.Value.Month, currentDay);
                             var internsOnDate = GetInternsOnDate(date);
@@ -138,25 +136,23 @@
                             var classes = $"calendar-day {(isToday ? "today" : "")} {(isWeekend ? "weekend" : "")} {(count > 3 ? "overloaded" : "")} {(count > 0 ? "clickable" : "")}";
                             var currentDate = date;
 
-                            <div class="@classes" @onclick="@(() => count > 0 ? ShowInternsForDate(currentDate) : Task.CompletedTask)">
+                            <div class="@classes"
+                                 @onclick="@(() => count > 0 ? ShowInternsForDate(currentDate) : Task.CompletedTask)">
                                 <div class="day-number">@currentDay</div>
-                                @if (count > 0)
-                                {
-                                    <div class="intern-count-badge" 
+                                @if (count > 0) {
+                                    <div class="intern-count-badge"
                                          style="background-color: @(count > 3 ? "var(--mud-palette-error)" : count > 2 ? "var(--mud-palette-warning)" : "var(--mud-palette-success)");">
                                         @count
                                     </div>
-                                    
+
                                     @* Zeige Initialen der ersten 3 Praktikanten *@
                                     <div class="intern-initials-container">
-                                        @foreach (var intern in internsOnDate.Take(3))
-                                        {
+                                        @foreach (var intern in internsOnDate.Take(3)) {
                                             <div class="intern-initial" title="@($"{intern.Name} {intern.Surname}")">
                                                 @GetInitials(intern.Name, intern.Surname)
                                             </div>
                                         }
-                                        @if (count > 3)
-                                        {
+                                        @if (count > 3) {
                                             <div class="intern-initial more" title="@(count - 3) weitere">
                                                 +@(count - 3)
                                             </div>
@@ -195,21 +191,20 @@
                     <MudSpacer/>
                     <AuthorizeView Policy="@Policies.Intern.CanUpdate">
                         <Authorized>
-                            <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts" 
-                                           Color="Color.Primary" 
+                            <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts"
+                                           Color="Color.Primary"
                                            Size="Size.Small"
                                            Href="/intern/manage"/>
                         </Authorized>
                     </AuthorizeView>
                 </MudStack>
-                
+
                 <MudDivider Class="mb-4"/>
 
                 <div class="intern-list-scroll">
                     <AuthorizeView Policy="@Policies.Intern.CanUpdate">
                         <Authorized>
-                            @foreach (var intern in GetInternsInMonth().OrderBy(i => i.StartDate))
-                            {
+                            @foreach (var intern in GetInternsInMonth().OrderBy(i => i.StartDate)) {
                                 var isActive = IsActiveToday(intern);
                                 var daysLeft = (intern.EndDate - DateTime.Today).Days;
 
@@ -219,17 +214,18 @@
                                           @onclick="@(() => NavigateToManage())">
                                     @* ...existing intern card content... *@
                                     <MudStack Spacing="2">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center"
+                                                  Justify="Justify.SpaceBetween">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                <MudAvatar Color="@(isActive ? Color.Success : Color.Default)" Size="Size.Small">
+                                                <MudAvatar Color="@(isActive ? Color.Success : Color.Default)"
+                                                           Size="Size.Small">
                                                     @GetInitials(intern.Name, intern.Surname)
                                                 </MudAvatar>
                                                 <MudText Typo="Typo.body2">
                                                     <strong>@intern.Name @intern.Surname</strong>
                                                 </MudText>
                                             </MudStack>
-                                            @if (isActive)
-                                            {
+                                            @if (isActive) {
                                                 <MudText Typo="Typo.caption" Color="Color.Success" Class="px-2">
                                                     <strong>● Aktiv</strong>
                                                 </MudText>
@@ -239,22 +235,30 @@
                                         <div class="intern-details">
                                             <MudStack Row="true" Spacing="3" Class="mb-2">
                                                 <MudStack Spacing="1" Class="date-card from-card">
-                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Von</MudText>
-                                                    <MudText Typo="Typo.body2"><strong>@intern.StartDate.ToString("dd.MM.yyyy")</strong></MudText>
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Von
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        <strong>@intern.StartDate.ToString("dd.MM.yyyy")</strong>
+                                                    </MudText>
                                                 </MudStack>
-                                                <MudText Typo="Typo.h6" Class="mud-text-secondary" Style="align-self: center;">→</MudText>
+                                                <MudText Typo="Typo.h6" Class="mud-text-secondary"
+                                                         Style="align-self: center;">→
+                                                </MudText>
                                                 <MudStack Spacing="1" Class="date-card to-card">
-                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Bis</MudText>
-                                                    <MudText Typo="Typo.body2"><strong>@intern.EndDate.ToString("dd.MM.yyyy")</strong></MudText>
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Bis
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        <strong>@intern.EndDate.ToString("dd.MM.yyyy")</strong>
+                                                    </MudText>
                                                 </MudStack>
                                             </MudStack>
 
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Default"/>
+                                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small"
+                                                         Color="Color.Default"/>
                                                 <MudText Typo="Typo.caption">
                                                     @((intern.EndDate - intern.StartDate).Days + 1) Tage gesamt
-                                                    @if (isActive && daysLeft >= 0)
-                                                    {
+                                                    @if (isActive && daysLeft >= 0) {
                                                         <span class="mud-text-secondary">• noch @daysLeft Tage</span>
                                                     }
                                                 </MudText>
@@ -262,8 +266,7 @@
                                         </div>
 
                                         @* Fortschrittsbalken *@
-                                        @if (isActive)
-                                        {
+                                        @if (isActive) {
                                             var progress = GetProgress(intern);
                                             <MudProgressLinear Color="Color.Success"
                                                                Value="@progress"
@@ -275,8 +278,7 @@
                             }
                         </Authorized>
                         <NotAuthorized>
-                            @foreach (var intern in GetInternsInMonth().OrderBy(i => i.StartDate))
-                            {
+                            @foreach (var intern in GetInternsInMonth().OrderBy(i => i.StartDate)) {
                                 var isActive = IsActiveToday(intern);
                                 var daysLeft = (intern.EndDate - DateTime.Today).Days;
 
@@ -285,17 +287,18 @@
                                           Style="@(isActive ? "border-left: 4px solid #00C853;" : "")">
                                     @* ...existing intern card content... *@
                                     <MudStack Spacing="2">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center"
+                                                  Justify="Justify.SpaceBetween">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                <MudAvatar Color="@(isActive ? Color.Success : Color.Default)" Size="Size.Small">
+                                                <MudAvatar Color="@(isActive ? Color.Success : Color.Default)"
+                                                           Size="Size.Small">
                                                     @GetInitials(intern.Name, intern.Surname)
                                                 </MudAvatar>
                                                 <MudText Typo="Typo.body2">
                                                     <strong>@intern.Name @intern.Surname</strong>
                                                 </MudText>
                                             </MudStack>
-                                            @if (isActive)
-                                            {
+                                            @if (isActive) {
                                                 <MudText Typo="Typo.caption" Color="Color.Success" Class="px-2">
                                                     <strong>● Aktiv</strong>
                                                 </MudText>
@@ -305,22 +308,30 @@
                                         <div class="intern-details">
                                             <MudStack Row="true" Spacing="3" Class="mb-2">
                                                 <MudStack Spacing="1" Class="date-card from-card">
-                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Von</MudText>
-                                                    <MudText Typo="Typo.body2"><strong>@intern.StartDate.ToString("dd.MM.yyyy")</strong></MudText>
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Von
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        <strong>@intern.StartDate.ToString("dd.MM.yyyy")</strong>
+                                                    </MudText>
                                                 </MudStack>
-                                                <MudText Typo="Typo.h6" Class="mud-text-secondary" Style="align-self: center;">→</MudText>
+                                                <MudText Typo="Typo.h6" Class="mud-text-secondary"
+                                                         Style="align-self: center;">→
+                                                </MudText>
                                                 <MudStack Spacing="1" Class="date-card to-card">
-                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Bis</MudText>
-                                                    <MudText Typo="Typo.body2"><strong>@intern.EndDate.ToString("dd.MM.yyyy")</strong></MudText>
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Bis
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        <strong>@intern.EndDate.ToString("dd.MM.yyyy")</strong>
+                                                    </MudText>
                                                 </MudStack>
                                             </MudStack>
 
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Default"/>
+                                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small"
+                                                         Color="Color.Default"/>
                                                 <MudText Typo="Typo.caption">
                                                     @((intern.EndDate - intern.StartDate).Days + 1) Tage gesamt
-                                                    @if (isActive && daysLeft >= 0)
-                                                    {
+                                                    @if (isActive && daysLeft >= 0) {
                                                         <span class="mud-text-secondary">• noch @daysLeft Tage</span>
                                                     }
                                                 </MudText>
@@ -328,8 +339,7 @@
                                         </div>
 
                                         @* Fortschrittsbalken *@
-                                        @if (isActive)
-                                        {
+                                        @if (isActive) {
                                             var progress = GetProgress(intern);
                                             <MudProgressLinear Color="Color.Success"
                                                                Value="@progress"
@@ -342,8 +352,7 @@
                         </NotAuthorized>
                     </AuthorizeView>
 
-                    @if (!GetInternsInMonth().Any())
-                    {
+                    @if (!GetInternsInMonth().Any()) {
                         <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-8">
                             <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Large" Color="Color.Default"/>
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
@@ -361,26 +370,26 @@
                 <MudStack Spacing="3">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="Color.Primary"/>
-                        <MudText Typo="Typo.h6">Timeline - @(_selectedDate.HasValue ? _selectedDate.Value.ToString("MMMM yyyy", new CultureInfo("de-DE")) : "")</MudText>
+                        <MudText Typo="Typo.h6">Timeline
+                            - @(_selectedDate.HasValue ? _selectedDate.Value.ToString("MMMM yyyy", new CultureInfo("de-DE")) : "")</MudText>
                     </MudStack>
 
                     <MudDivider/>
 
-                    @if (_selectedDate.HasValue)
-                    {
+                    @if (_selectedDate.HasValue) {
                         <div class="timeline-container">
                             @* Timeline Header *@
                             <div class="timeline-header">
                                 <div class="timeline-name-col">Name</div>
                                 <div class="timeline-days">
-                                    @for (int day = 1; day <= GetDaysInMonth(); day++)
-                                    {
+                                    @for (int day = 1; day <= GetDaysInMonth(); day++) {
                                         var date = new DateTime(_selectedDate.Value.Year, _selectedDate.Value.Month, day);
                                         var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
                                         var headerClasses = $"timeline-day-header {(isWeekend ? "weekend" : "")}";
                                         <div class="@headerClasses">
                                             <span class="day-num">@day</span>
-                                            <span class="day-name">@date.ToString("ddd", new CultureInfo("de-DE")).Substring(0, 2)</span>
+                                            <span
+                                                class="day-name">@date.ToString("ddd", new CultureInfo("de-DE")).Substring(0, 2)</span>
                                         </div>
                                     }
                                 </div>
@@ -388,8 +397,7 @@
 
                             @* Timeline Body *@
                             <div class="timeline-body">
-                                @foreach (var intern in GetInternsInMonth().OrderBy(i => i.StartDate))
-                                {
+                                @foreach (var intern in GetInternsInMonth().OrderBy(i => i.StartDate)) {
                                     <div class="timeline-row">
                                         <div class="timeline-name-col">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -400,8 +408,7 @@
                                             </MudStack>
                                         </div>
                                         <div class="timeline-days">
-                                            @for (int day = 1; day <= GetDaysInMonth(); day++)
-                                            {
+                                            @for (int day = 1; day <= GetDaysInMonth(); day++) {
                                                 var date = new DateTime(_selectedDate.Value.Year, _selectedDate.Value.Month, day);
                                                 var isPresent = date >= intern.StartDate && date <= intern.EndDate;
                                                 var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
@@ -416,10 +423,10 @@
                                     </div>
                                 }
 
-                                @if (!GetInternsInMonth().Any())
-                                {
+                                @if (!GetInternsInMonth().Any()) {
                                     <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-8">
-                                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large" Color="Color.Default"/>
+                                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large"
+                                                 Color="Color.Default"/>
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                             Keine Aktivitäten in diesem Monat
                                         </MudText>
@@ -462,17 +469,15 @@
         if (!internsOnDate.Any()) return;
 
         var dateStr = date.ToString("dddd, dd.MM.yyyy", new CultureInfo("de-DE"));
-        
-        var parameters = new DialogParameters
-        {
+
+        var parameters = new DialogParameters {
             ["Interns"] = internsOnDate,
             ["Date"] = dateStr,
             ["Count"] = internsOnDate.Count
         };
 
-        var options = new DialogOptions 
-        { 
-            MaxWidth = MaxWidth.Large, 
+        var options = new DialogOptions {
+            MaxWidth = MaxWidth.Large,
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true
@@ -480,9 +485,8 @@
 
         var dialog = await DialogService.ShowAsync<InternDateDialog>("Praktikanten-Übersicht", parameters, options);
         var result = await dialog.Result;
-        
-        if (result != null && !result.Canceled && result.Data is bool shouldNavigate && shouldNavigate)
-        {
+
+        if (result != null && !result.Canceled && result.Data is bool shouldNavigate && shouldNavigate) {
             NavigationManager.NavigateTo("/intern/manage");
         }
     }
@@ -508,12 +512,12 @@
 
     private List<InternDto> GetInternsInMonth() {
         if (!_selectedDate.HasValue) return [];
-        
+
         var monthStart = new DateTime(_selectedDate.Value.Year, _selectedDate.Value.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-        
-        return _interns.Where(i => 
-            i.StartDate.Date <= monthEnd && 
+
+        return _interns.Where(i =>
+            i.StartDate.Date <= monthEnd &&
             i.EndDate.Date >= monthStart
         ).ToList();
     }
@@ -529,15 +533,16 @@
 
     private int GetMaxSimultaneous() {
         if (!_selectedDate.HasValue) return 0;
-        
+
         var monthStart = new DateTime(_selectedDate.Value.Year, _selectedDate.Value.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-        
+
         int max = 0;
         for (var date = monthStart; date <= monthEnd; date = date.AddDays(1)) {
             var count = GetInternsOnDate(date).Count;
             if (count > max) max = count;
         }
+
         return max;
     }
 
@@ -557,5 +562,6 @@
         var lastInitial = !string.IsNullOrEmpty(surname) ? surname[0].ToString().ToUpper() : "?";
         return firstInitial + lastInitial;
     }
+
 }
 

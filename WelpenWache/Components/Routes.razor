@@ -1,8 +1,6 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
-<CascadingAuthenticationState>
+﻿<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
-            @* AuthorizeRouteView sorgt dafür, dass [Authorize] Attribute auf Seiten beachtet werden *@
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
                 <NotAuthorized>
                     <h1>Zugriff verweigert</h1>

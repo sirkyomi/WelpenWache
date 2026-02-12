@@ -1,6 +1,4 @@
 ﻿@page "/intern/manage"
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using WelpenWache.Core
 @using WelpenWache.Core.Features.Intern
 @using WelpenWache.Core.Features.Intern.Models
@@ -38,7 +36,6 @@
         </MudStack>
 
         <MudDivider Class="mb-4"/>
-
         @* Table *@
         <MudTable @ref="_table" 
                   Items="@_interns" 
@@ -46,7 +43,7 @@
                   Breakpoint="Breakpoint.Sm" 
                   Loading="@_fetching"
                   LoadingProgressColor="Color.Primary" 
-                  EditTrigger="@(_canUpdate ? TableEditTrigger.RowClick : TableEditTrigger.EditButton)"
+                  EditTrigger="TableEditTrigger.RowClick"
                   EditButtonPosition="TableEditButtonPosition.End"
                   RowEditPreview="BackupItem" 
                   RowEditCancel="ResetItemToOriginalValues" 
@@ -206,7 +203,7 @@
         // Check if user has update permission
         if (AuthenticationState != null) {
             var authState = await AuthenticationState;
-            _canUpdate = authState.User.HasClaim(c => c.Type == "Permission" && c.Value == Permissions.Intern_Update.ToString());
+            _canUpdate = authState.User.HasClaim(c => c.Type == nameof(Permissions) && c.Value == nameof(Permissions.Intern_Update));
         }
         
         try {

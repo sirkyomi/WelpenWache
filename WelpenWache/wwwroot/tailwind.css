@@ -6,6 +6,7 @@
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace;
+    --color-white: #fff;
     --spacing: 0.25rem;
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
@@ -163,41 +164,53 @@
   .visible {
     visibility: visible;
   }
-  .absolute {
-    position: absolute;
-  }
   .static {
     position: static;
-  }
-  .right-\[1rem\] {
-    right: 1rem;
-  }
-  .right-\[3rem\] {
-    right: 3rem;
-  }
-  .bottom-\[1rem\] {
-    bottom: 1rem;
-  }
-  .bottom-\[3rem\] {
-    bottom: 3rem;
   }
   .m-4\! {
     margin: calc(var(--spacing) * 4) !important;
   }
-  .m-5 {
-    margin: calc(var(--spacing) * 5);
+  .my-2 {
+    margin-block: calc(var(--spacing) * 2);
   }
-  .m-5\! {
-    margin: calc(var(--spacing) * 5) !important;
+  .my-4 {
+    margin-block: calc(var(--spacing) * 4);
   }
   .mt-0 {
     margin-top: calc(var(--spacing) * 0);
   }
-  .mr-3 {
-    margin-right: calc(var(--spacing) * 3);
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .mt-4 {
+    margin-top: calc(var(--spacing) * 4);
+  }
+  .mt-8 {
+    margin-top: calc(var(--spacing) * 8);
+  }
+  .mt-16 {
+    margin-top: calc(var(--spacing) * 16);
+  }
+  .mr-2 {
+    margin-right: calc(var(--spacing) * 2);
+  }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
+  }
+  .mb-3 {
+    margin-bottom: calc(var(--spacing) * 3);
+  }
+  .mb-4 {
+    margin-bottom: calc(var(--spacing) * 4);
+  }
+  .mb-6 {
+    margin-bottom: calc(var(--spacing) * 6);
   }
   .ml-3 {
     margin-left: calc(var(--spacing) * 3);
+  }
+  .ml-11 {
+    margin-left: calc(var(--spacing) * 11);
   }
   .flex {
     display: flex;
@@ -205,37 +218,13 @@
   .table {
     display: table;
   }
-  .h-100 {
-    height: calc(var(--spacing) * 100);
+  .grow {
+    flex-grow: 1;
   }
-  .h-\[100px\] {
-    height: 100px;
+  .px-2 {
+    padding-inline: calc(var(--spacing) * 2);
   }
-  .w-100 {
-    width: calc(var(--spacing) * 100);
-  }
-  .w-\[100px\] {
-    width: 100px;
-  }
-  .min-w-1\/2 {
-    min-width: calc(1/2 * 100%);
-  }
-  .flex-col {
-    flex-direction: column;
-  }
-  .flex-row {
-    flex-direction: row;
-  }
-  .gap-1 {
-    gap: calc(var(--spacing) * 1);
-  }
-  .gap-3 {
-    gap: calc(var(--spacing) * 3);
-  }
-  .gap-4 {
-    gap: calc(var(--spacing) * 4);
-  }
-  .p-2 {
-    padding: calc(var(--spacing) * 2);
+  .text-white {
+    color: var(--color-white);
   }
 }
