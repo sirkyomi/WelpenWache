@@ -1,0 +1,117 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Rider IDE
+.idea/
+*.sln.iml
+*.sln.DotSettings
+*.sln.DotSettings.user
+
+# JetBrains ReSharper
+_ReSharper*/
+*.resharper
+*.resharper.user
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+
+# Entity Framework
+*.db
+*.db-shm
+*.db-wal
+
+# Application Insights
+ApplicationInsights.config
+
+# Local .NET Core tools
+.dotnet/
+
+# dotnet user secrets
+.user-secrets/
+.secrets/
+secrets.json
+
+# NuGet Lock files
+packages.lock.json
+
+# Misc
+*.log
+*.ldf
+*.mdf
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Node modules (if using npm for frontend tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Publish files
+PublishProfiles/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE settings
+.editorconfig.user
+
+# Test results
+TestResults/
+*.trx
+coverage.cobertura.xml
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# BDD/Specflow
+bin/
+obj/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Build artifacts for Docker
+publish/
+
