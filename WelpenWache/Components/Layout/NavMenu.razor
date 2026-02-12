@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿﻿@using Microsoft.AspNetCore.Components.Authorization
 @using WelpenWache.Core
 @using WelpenWache.Core.Services
 @inject SetupService SetupService
@@ -17,6 +17,13 @@
         <MudNavLink Href="trainee/manage" Icon="@Icons.Material.Filled.AllInbox" Match="NavLinkMatch.All">Verwalten</MudNavLink>
     </MudNavGroup>
     <MudSpacer/>
+    <AuthorizeView Policy="@Policies.Admin.CanManageUsers" Context="adminAuth">
+        <Authorized>
+            <MudNavLink Href="admin/users" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SupervisedUserCircle" Disabled="@_setupRequired">
+                Benutzerverwaltung
+            </MudNavLink>
+        </Authorized>
+    </AuthorizeView>
     <MudNavLink Href="settings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Settings" Disabled="@_setupRequired">Einstellungen
     </MudNavLink>
 </MudNavMenu>

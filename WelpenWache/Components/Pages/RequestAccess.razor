@@ -1,0 +1,142 @@
+﻿@page "/request-access"
+@using System.Security.Claims
+@using WelpenWache.Core.Database.Models
+@using WelpenWache.Core.Services
+@inject AccessRequestService AccessRequestService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Berechtigung anfordern</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Class="pa-6" Elevation="3">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            Zugriff anfordern
+        </MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-6">
+            Sie benötigen Berechtigungen, um diese Anwendung zu verwenden.
+        </MudText>
+
+        @if (_isLoading) {
+            <MudStack AlignItems="AlignItems.Center" Spacing="3">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                <MudText Typo="Typo.body2">Laden...</MudText>
+            </MudStack>
+        } else if (_existingRequest != null) {
+            <MudAlert Severity="@GetAlertSeverity(_existingRequest.Status)" Variant="Variant.Filled" Class="mb-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                    @if (_existingRequest.Status == AccessRequestStatus.Pending) {
+                        <text>Ihre Anfrage wird bearbeitet</text>
+                    } else if (_existingRequest.Status == AccessRequestStatus.Approved) {
+                        <text>Ihre Anfrage wurde genehmigt</text>
+                    } else {
+                        <text>Ihre Anfrage wurde abgelehnt</text>
+                    }
+                </MudText>
+                <MudText Typo="Typo.body2">Benutzername: <strong>@_username</strong></MudText>
+                <MudText Typo="Typo.body2">Angefordert am: <strong>@_existingRequest.RequestedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong></MudText>
+                @if (_existingRequest.Status != AccessRequestStatus.Pending) {
+                    <MudText Typo="Typo.body2">Bearbeitet am: <strong>@_existingRequest.ProcessedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong></MudText>
+                    <MudText Typo="Typo.body2">Bearbeitet von: <strong>@_existingRequest.ProcessedBy</strong></MudText>
+                }
+                <MudDivider Class="my-2" />
+                @if (_existingRequest.Status == AccessRequestStatus.Pending) {
+                    <MudText Typo="Typo.body2">
+                        Ein Administrator wird Ihre Anfrage in Kürze bearbeiten.
+                    </MudText>
+                } else if (_existingRequest.Status == AccessRequestStatus.Approved) {
+                    <MudText Typo="Typo.body2">
+                        Bitte aktualisieren Sie die Seite oder melden Sie sich erneut an.
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" Class="mt-2" OnClick="@(() => NavigationManager.NavigateTo("/", true))">
+                        Seite neu laden
+                    </MudButton>
+                } else if (_existingRequest.Status == AccessRequestStatus.Rejected) {
+                    <MudText Typo="Typo.body2">
+                        Kontaktieren Sie bitte einen Administrator für weitere Informationen.
+                    </MudText>
+                }
+            </MudAlert>
+        } else {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Keine Berechtigungen</MudText>
+                <MudText Typo="Typo.body2">
+                    Sie sind als <strong>@_username</strong> angemeldet, haben aber keine Berechtigungen für diese Anwendung.
+                </MudText>
+            </MudAlert>
+
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       FullWidth="true" 
+                       Size="Size.Large"
+                       Disabled="@_isRequesting"
+                       OnClick="SubmitRequest">
+                @if (_isRequesting) {
+                    <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                    <MudText>Wird angefordert...</MudText>
+                } else {
+                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" Class="mr-2" />
+                    <MudText>Berechtigung anfordern</MudText>
+                }
+            </MudButton>
+
+            @if (!string.IsNullOrEmpty(_errorMessage)) {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-4">
+                    @_errorMessage
+                </MudAlert>
+            }
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isRequesting;
+    private string _username = "";
+    private string _sid = "";
+    private string _errorMessage = "";
+    private AccessRequest? _existingRequest;
+
+    protected override async Task OnInitializedAsync() {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is { IsAuthenticated: true }) {
+            _username = user.Identity.Name ?? "Unbekannt";
+            _sid = user.FindFirst(ClaimTypes.PrimarySid)?.Value ?? "";
+
+            if (!string.IsNullOrEmpty(_sid)) {
+                _existingRequest = await AccessRequestService.GetActiveRequestAsync(_sid);
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task SubmitRequest() {
+        if (string.IsNullOrEmpty(_sid)) {
+            _errorMessage = "Benutzer-ID konnte nicht ermittelt werden.";
+            return;
+        }
+
+        _isRequesting = true;
+        _errorMessage = "";
+
+        try {
+            await AccessRequestService.CreateAccessRequestAsync(_sid, _username);
+            _existingRequest = await AccessRequestService.GetActiveRequestAsync(_sid);
+        } catch (Exception ex) {
+            _errorMessage = $"Fehler beim Anfordern der Berechtigung: {ex.Message}";
+        } finally {
+            _isRequesting = false;
+        }
+    }
+
+    private Severity GetAlertSeverity(AccessRequestStatus status) => status switch {
+        AccessRequestStatus.Pending => Severity.Info,
+        AccessRequestStatus.Approved => Severity.Success,
+        AccessRequestStatus.Rejected => Severity.Error,
+        _ => Severity.Normal
+    };
+}
+

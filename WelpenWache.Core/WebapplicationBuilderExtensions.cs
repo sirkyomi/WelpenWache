@@ -12,6 +12,7 @@ public static class WebapplicationBuilderExtensions {
             x => x.UseSqlServer(connectionString));
         services.AddInternServices();
         services.AddScoped<PermissionService>();
+        services.AddScoped<AccessRequestService>();
         services.AddSingleton<SetupService>();
         //other Services
         

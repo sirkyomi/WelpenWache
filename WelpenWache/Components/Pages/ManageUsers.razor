@@ -1,0 +1,250 @@
+﻿@page "/admin/users"
+@using WelpenWache.Core
+@using WelpenWache.Core.Database.Models
+@using WelpenWache.Core.Services
+@attribute [Authorize(Policy = Policies.Admin.CanManageUsers)]
+@inject AccessRequestService AccessRequestService
+@inject PermissionService PermissionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Benutzerverwaltung</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-6">Benutzerverwaltung</MudText>
+
+    @if (_isLoading) {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    } else {
+        <!-- Pending Requests -->
+        <MudPaper Class="pa-4 mb-6" Elevation="2">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.PendingActions" Class="mr-2" />
+                Offene Anfragen (@_pendingRequests.Count)
+            </MudText>
+            
+            @if (_pendingRequests.Any()) {
+                <MudTable Items="@_pendingRequests" Hover="true" Striped="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Benutzername</MudTh>
+                        <MudTh>SID</MudTh>
+                        <MudTh>Angefordert am</MudTh>
+                        <MudTh Style="text-align: right">Aktionen</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Benutzername">
+                            <MudText Typo="Typo.body2"><strong>@context.Username</strong></MudText>
+                        </MudTd>
+                        <MudTd DataLabel="SID">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@context.Sid</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Angefordert am">
+                            <MudText Typo="Typo.body2">@context.RequestedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Aktionen" Style="text-align: right">
+                            <MudButtonGroup Variant="Variant.Filled" Size="Size.Small">
+                                <MudButton Color="Color.Success" 
+                                           StartIcon="@Icons.Material.Filled.Check"
+                                           OnClick="@(() => ShowPermissionDialog(context))">
+                                    Genehmigen
+                                </MudButton>
+                                <MudButton Color="Color.Error" 
+                                           StartIcon="@Icons.Material.Filled.Close"
+                                           OnClick="@(() => RejectRequest(context.Id))">
+                                    Ablehnen
+                                </MudButton>
+                            </MudButtonGroup>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            } else {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    Keine offenen Anfragen vorhanden.
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <!-- Request History -->
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" />
+                Anfrageverlauf
+            </MudText>
+            
+            @if (_allRequests.Any()) {
+                <MudTable Items="@_allRequests.Take(20)" Hover="true" Striped="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Benutzername</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Angefordert am</MudTh>
+                        <MudTh>Bearbeitet</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Benutzername">
+                            <MudText Typo="Typo.body2"><strong>@context.Username</strong></MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Sid</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Status">
+                            <MudChip T="string" Size="Size.Small" 
+                                     Color="@GetStatusColor(context.Status)" 
+                                     Variant="Variant.Filled">
+                                @GetStatusText(context.Status)
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Angefordert am">
+                            <MudText Typo="Typo.body2">@context.RequestedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Bearbeitet">
+                            @if (context.ProcessedAt.HasValue) {
+                                <MudText Typo="Typo.body2">@context.ProcessedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">von @context.ProcessedBy</MudText>
+                            } else {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            } else {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    Keine Anfragen vorhanden.
+                </MudAlert>
+            }
+        </MudPaper>
+    }
+
+    <!-- Permission Dialog -->
+    <MudDialog @bind-Visible="_showPermissionDialog" Options="_dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Security" Class="mr-2" />
+                Berechtigungen für @_selectedRequest?.Username
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Wählen Sie die Berechtigungen aus, die der Benutzer erhalten soll:
+            </MudText>
+            <MudStack Spacing="2">
+                @foreach (var permission in Enum.GetValues<Permissions>()) {
+                    var permissionCopy = permission;
+                    <MudCheckBox T="bool" 
+                                 Value="@GetPermissionCheckState(permissionCopy)"
+                                 ValueChanged="@((bool val) => SetPermissionCheckState(permissionCopy, val))"
+                                 Color="Color.Primary"
+                                 Label="@GetPermissionDisplayName(permissionCopy)" />
+                }
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton Variant="Variant.Text" OnClick="ClosePermissionDialog">Abbrechen</MudButton>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Success" 
+                       Disabled="@(!_selectedPermissions.Any())"
+                       StartIcon="@Icons.Material.Filled.Check"
+                       OnClick="ApproveWithPermissions">
+                Genehmigen
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private List<AccessRequest> _pendingRequests = new();
+    private List<AccessRequest> _allRequests = new();
+    private string _currentUserName = "";
+    
+    private bool _showPermissionDialog;
+    private AccessRequest? _selectedRequest;
+    private HashSet<Permissions> _selectedPermissions = new();
+
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync() {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _currentUserName = authState.User.Identity?.Name ?? "System";
+        
+        await LoadData();
+    }
+
+    private async Task LoadData() {
+        _isLoading = true;
+        _pendingRequests = await AccessRequestService.GetPendingRequestsAsync();
+        _allRequests = await AccessRequestService.GetAllRequestsAsync();
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private void ShowPermissionDialog(AccessRequest request) {
+        _selectedRequest = request;
+        _selectedPermissions.Clear();
+        _showPermissionDialog = true;
+    }
+
+    private void ClosePermissionDialog() {
+        _showPermissionDialog = false;
+        _selectedRequest = null;
+        _selectedPermissions.Clear();
+    }
+
+    private bool GetPermissionCheckState(Permissions permission) {
+        return _selectedPermissions.Contains(permission);
+    }
+
+    private void SetPermissionCheckState(Permissions permission, bool value) {
+        if (value) {
+            _selectedPermissions.Add(permission);
+        } else {
+            _selectedPermissions.Remove(permission);
+        }
+    }
+
+    private async Task ApproveWithPermissions() {
+        if (_selectedRequest == null || !_selectedPermissions.Any()) {
+            return;
+        }
+
+        foreach (var permission in _selectedPermissions) {
+            await PermissionService.AddPermissionAsync(_selectedRequest.Sid, permission);
+        }
+
+        await AccessRequestService.ApproveRequestAsync(_selectedRequest.Id, _currentUserName);
+        
+        Snackbar.Add($"Benutzer {_selectedRequest.Username} wurde genehmigt", Severity.Success);
+        
+        ClosePermissionDialog();
+        await LoadData();
+    }
+
+    private async Task RejectRequest(int requestId) {
+        await AccessRequestService.RejectRequestAsync(requestId, _currentUserName);
+        Snackbar.Add("Anfrage wurde abgelehnt", Severity.Info);
+        await LoadData();
+    }
+
+    private Color GetStatusColor(AccessRequestStatus status) => status switch {
+        AccessRequestStatus.Pending => Color.Warning,
+        AccessRequestStatus.Approved => Color.Success,
+        AccessRequestStatus.Rejected => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(AccessRequestStatus status) => status switch {
+        AccessRequestStatus.Pending => "Ausstehend",
+        AccessRequestStatus.Approved => "Genehmigt",
+        AccessRequestStatus.Rejected => "Abgelehnt",
+        _ => status.ToString()
+    };
+
+    private string GetPermissionDisplayName(Permissions permission) => permission switch {
+        Permissions.Admin => "Administrator",
+        Permissions.Intern_Create => "Intern - Erstellen",
+        Permissions.Intern_Read => "Intern - Lesen",
+        Permissions.Intern_Update => "Intern - Bearbeiten",
+        Permissions.Intern_Delete => "Intern - Löschen",
+        _ => permission.ToString()
+    };
+}
+
+
+

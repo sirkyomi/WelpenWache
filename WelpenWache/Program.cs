@@ -53,7 +53,11 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.Intern.CanDelete, policy =>
         policy.RequireClaim(
             nameof(Permissions),
-            nameof(Permissions.Intern_Delete)));
+            nameof(Permissions.Intern_Delete)))
+    .AddPolicy(Policies.Admin.CanManageUsers, policy =>
+        policy.RequireClaim(
+            nameof(Permissions),
+            nameof(Permissions.Admin)));
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment()) {
@@ -67,6 +71,7 @@ app.MapStaticAssets();
 app.UseRouting();
 
 app.UseSetupRedirect();
+app.UseAccessRequestRedirect();
 
 app.UseAuthentication(); 
 app.UseAuthorization();
