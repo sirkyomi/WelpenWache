@@ -67,6 +67,7 @@ if (!app.Environment.IsDevelopment()) {
 app.UseHttpsRedirection();
 app.MapStaticAssets();
 
+app.UsePathBase("/welpenwache");
 app.UseRouting();
 
 app.UseSetupRedirect();
