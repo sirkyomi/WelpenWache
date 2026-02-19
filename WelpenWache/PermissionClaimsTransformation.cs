@@ -19,11 +19,6 @@ public class PermissionClaimsTransformation : IClaimsTransformation {
             return principal;
         }
 
-        // Check if we already added permissions (to avoid adding them multiple times)
-        if (principal.HasClaim(c => c.Type == nameof(Permissions))) {
-            return principal;
-        }
-
         var sid = principal.FindFirst(ClaimTypes.PrimarySid)?.Value;
         if (string.IsNullOrEmpty(sid)) {
             return principal;
@@ -35,14 +30,19 @@ public class PermissionClaimsTransformation : IClaimsTransformation {
             .Where(p => p.Sid == sid)
             .ToListAsync();
 
-        if (!dbPermissions.Any()) {
-            return principal;
+        // Remove existing permission claims so changes are reflected immediately
+        foreach (var identity in principal.Identities) {
+            var toRemove = identity.FindAll(nameof(Permissions)).ToList();
+            foreach (var claim in toRemove) {
+                identity.RemoveClaim(claim);
+            }
         }
 
-        var identity = new ClaimsIdentity();
-        identity.AddClaims(dbPermissions.Select(p => new Claim(nameof(Permissions), p.Permission.ToString())));
-
-        principal.AddIdentity(identity);
+        if (dbPermissions.Any()) {
+            var identity = new ClaimsIdentity();
+            identity.AddClaims(dbPermissions.Select(p => new Claim(nameof(Permissions), p.Permission.ToString())));
+            principal.AddIdentity(identity);
+        }
 
         return principal;
     }

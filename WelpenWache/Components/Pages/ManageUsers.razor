@@ -1,6 +1,7 @@
-﻿@page "/admin/users"
+@page "/admin/users"
 @using WelpenWache.Core
 @using WelpenWache.Core.Database.Models
+@using WelpenWache.Core.Models
 @using WelpenWache.Core.Services
 @attribute [Authorize(Policy = Policies.Admin.CanManageUsers)]
 @inject AccessRequestService AccessRequestService
@@ -60,6 +61,58 @@
             } else {
                 <MudAlert Severity="Severity.Info" Variant="Variant.Text">
                     Keine offenen Anfragen vorhanden.
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <!-- Existing Users -->
+        <MudPaper Class="pa-4 mb-6" Elevation="2">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.SupervisedUserCircle" Class="mr-2" />
+                Bestehende Benutzer (@_usersWithPermissions.Count)
+            </MudText>
+
+            @if (_usersWithPermissions.Any()) {
+                <MudTable Items="@_usersWithPermissions" Hover="true" Striped="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Benutzername</MudTh>
+                        <MudTh>SID</MudTh>
+                        <MudTh>Berechtigungen</MudTh>
+                        <MudTh Style="text-align: right">Aktionen</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Benutzername">
+                            <MudText Typo="Typo.body2"><strong>@context.Username</strong></MudText>
+                        </MudTd>
+                        <MudTd DataLabel="SID">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@context.Sid</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Berechtigungen">
+                            @if (context.Permissions.Any()) {
+                                <MudStack Spacing="1" Row="true" Wrap="Wrap.Wrap">
+                                    @foreach (var permission in context.Permissions) {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                            @GetPermissionDisplayName(permission)
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            } else {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Aktionen" Style="text-align: right">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => ShowEditPermissionsDialog(context))">
+                                Bearbeiten
+                            </MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            } else {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    Keine Benutzer mit Berechtigungen vorhanden.
                 </MudAlert>
             }
         </MudPaper>
@@ -146,16 +199,53 @@
             </MudButton>
         </DialogActions>
     </MudDialog>
+
+    <!-- Edit Permissions Dialog -->
+    <MudDialog @bind-Visible="_showEditPermissionsDialog" Options="_dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Class="mr-2" />
+                Berechtigungen bearbeiten für @_selectedUser?.Username
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Passen Sie die Berechtigungen an (leere Auswahl entfernt alle Rechte):
+            </MudText>
+            <MudStack Spacing="2">
+                @foreach (var permission in Enum.GetValues<Permissions>()) {
+                    var permissionCopy = permission;
+                    <MudCheckBox T="bool"
+                                 Value="@GetPermissionCheckState(permissionCopy)"
+                                 ValueChanged="@((bool val) => SetPermissionCheckState(permissionCopy, val))"
+                                 Color="Color.Primary"
+                                 Label="@GetPermissionDisplayName(permissionCopy)" />
+                }
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton Variant="Variant.Text" OnClick="CloseEditPermissionsDialog">Abbrechen</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SavePermissions">
+                Speichern
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
 </MudContainer>
 
 @code {
     private bool _isLoading = true;
     private List<AccessRequest> _pendingRequests = new();
     private List<AccessRequest> _allRequests = new();
+    private List<UserWithPermissions> _usersWithPermissions = new();
     private string _currentUserName = "";
     
     private bool _showPermissionDialog;
     private AccessRequest? _selectedRequest;
+    private bool _showEditPermissionsDialog;
+    private UserWithPermissions? _selectedUser;
     private HashSet<Permissions> _selectedPermissions = new();
 
     private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
@@ -171,6 +261,7 @@
         _isLoading = true;
         _pendingRequests = await AccessRequestService.GetPendingRequestsAsync();
         _allRequests = await AccessRequestService.GetAllRequestsAsync();
+        _usersWithPermissions = await PermissionService.GetUsersWithPermissionsAsync();
         _isLoading = false;
         StateHasChanged();
     }
@@ -184,6 +275,18 @@
     private void ClosePermissionDialog() {
         _showPermissionDialog = false;
         _selectedRequest = null;
+        _selectedPermissions.Clear();
+    }
+
+    private void ShowEditPermissionsDialog(UserWithPermissions user) {
+        _selectedUser = user;
+        _selectedPermissions = user.Permissions.ToHashSet();
+        _showEditPermissionsDialog = true;
+    }
+
+    private void CloseEditPermissionsDialog() {
+        _showEditPermissionsDialog = false;
+        _selectedUser = null;
         _selectedPermissions.Clear();
     }
 
@@ -210,9 +313,21 @@
 
         await AccessRequestService.ApproveRequestAsync(_selectedRequest.Id, _currentUserName);
         
-        Snackbar.Add($"Benutzer {_selectedRequest.Username} wurde genehmigt", Severity.Success);
+        Snackbar.Add($"Benutzer {_selectedRequest.Username} wurde genehmigt. Der Benutzer muss die Seite neu laden.", Severity.Success);
         
         ClosePermissionDialog();
+        await LoadData();
+    }
+
+    private async Task SavePermissions() {
+        if (_selectedUser == null) {
+            return;
+        }
+
+        await PermissionService.SetPermissionsAsync(_selectedUser.Sid, _selectedPermissions);
+        Snackbar.Add($"Berechtigungen für {_selectedUser.Username} wurden aktualisiert. Der Benutzer muss die Seite neu laden.", Severity.Success);
+
+        CloseEditPermissionsDialog();
         await LoadData();
     }
 
@@ -245,6 +360,3 @@
         _ => permission.ToString()
     };
 }
-
-
-

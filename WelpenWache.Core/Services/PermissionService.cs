@@ -1,5 +1,7 @@
-﻿﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Principal;
 using WelpenWache.Core.Database;
+using WelpenWache.Core.Models;
 
 namespace WelpenWache.Core.Services;
 
@@ -14,6 +16,60 @@ public class PermissionService {
             .Where(p => p.Sid == windowsSid)
             .Select(p => p.Permission)
             .ToListAsync();
+    }
+
+    public async Task<List<UserWithPermissions>> GetUsersWithPermissionsAsync() {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var userPermissions = await context.UserPermissions
+            .AsNoTracking()
+            .ToListAsync();
+
+        var usernames = await context.AccessRequests
+            .AsNoTracking()
+            .GroupBy(r => r.Sid)
+            .Select(g => new {
+                Sid = g.Key,
+                Username = g.OrderByDescending(r => r.RequestedAt)
+                    .Select(r => r.Username)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        var usernameMap = usernames
+            .Where(u => !string.IsNullOrWhiteSpace(u.Username))
+            .ToDictionary(u => u.Sid, u => u.Username!);
+
+        return userPermissions
+            .GroupBy(p => p.Sid)
+            .Select(group => new UserWithPermissions {
+                Sid = group.Key,
+                Username = ResolveUsername(group.Key, usernameMap),
+                Permissions = group.Select(p => p.Permission).OrderBy(p => p.ToString()).ToList()
+            })
+            .OrderBy(u => u.Username)
+            .ToList();
+    }
+
+    private static string ResolveUsername(string sid, IReadOnlyDictionary<string, string> usernameMap) {
+        if (usernameMap.TryGetValue(sid, out var username) &&
+            !string.IsNullOrWhiteSpace(username) &&
+            !string.Equals(username, sid, StringComparison.OrdinalIgnoreCase)) {
+            return username;
+        }
+
+        var translated = TryTranslateSidToAccount(sid);
+        return string.IsNullOrWhiteSpace(translated) ? sid : translated;
+    }
+
+    private static string TryTranslateSidToAccount(string sid) {
+        try {
+            var securityIdentifier = new SecurityIdentifier(sid);
+            var account = (NTAccount)securityIdentifier.Translate(typeof(NTAccount));
+            return account.Value;
+        } catch {
+            return sid;
+        }
     }
 
     public async Task<bool> HasAnyPermissionAsync(string windowsSid) {
@@ -37,6 +93,40 @@ public class PermissionService {
         });
 
         await context.SaveChangesAsync();
+    }
+
+    public async Task SetPermissionsAsync(string sid, IEnumerable<Permissions> permissions) {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var desired = permissions.Distinct().ToHashSet();
+        var existing = await context.UserPermissions
+            .Where(p => p.Sid == sid)
+            .ToListAsync();
+
+        var toRemove = existing
+            .Where(p => !desired.Contains(p.Permission))
+            .ToList();
+
+        if (toRemove.Any()) {
+            context.UserPermissions.RemoveRange(toRemove);
+        }
+
+        var existingSet = existing.Select(p => p.Permission).ToHashSet();
+        var toAdd = desired
+            .Where(p => !existingSet.Contains(p))
+            .Select(p => new Database.Models.UserPermission {
+                Sid = sid,
+                Permission = p
+            })
+            .ToList();
+
+        if (toAdd.Any()) {
+            context.UserPermissions.AddRange(toAdd);
+        }
+
+        if (toRemove.Any() || toAdd.Any()) {
+            await context.SaveChangesAsync();
+        }
     }
 
     public async Task RemovePermissionAsync(string sid, Permissions permission) {
