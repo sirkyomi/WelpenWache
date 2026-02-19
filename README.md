@@ -6,6 +6,14 @@ A modern Blazor Server application for managing internal data with Windows Authe
 
 WelpenWache is a role-based application built with .NET 10 and Blazor Server that provides secure access control using Windows Authentication. The application features a first-run setup wizard, access request workflow, and comprehensive user management.
 
+## Purpose
+
+WelpenWache is designed for internal teams that need a clear overview of interns and a secure, auditable way to:
+
+- Manage intern records and related internal data
+- Control access with fine-grained permissions
+- Track access requests and approvals in a clear workflow
+
 ## Features
 
 - **Windows Authentication**: Seamless integration with Windows Active Directory
@@ -185,7 +193,7 @@ In development, the application uses HTTP.sys for Windows Authentication:
 builder.WebHost.UseHttpSys(options =>
 {
     options.Authentication.Schemes = AuthenticationSchemes.Negotiate;
-    options.Authentication.AllowAnonymous = false;
+    options.Authentication.AllowAnonymous = true;
     options.UrlPrefixes.Add("http://localhost:5278");
 });
 ```
@@ -202,6 +210,12 @@ For production deployment:
 2. **HTTP.sys**: Configure appropriate URL reservations and SSL certificates
 
 3. **Environment Variables**: Set `ASPNETCORE_ENVIRONMENT` to `Production`
+
+### IIS Hosting Notes
+
+- The app derives its base path at runtime, so there is no hardcoded `<base href>`.
+- This supports hosting under a virtual directory (e.g., `https://server/werbung/welpenwache/`) without extra configuration.
+- Ensure the IIS site/application path matches the URL you want to serve.
 
 ### Database Configuration
 
