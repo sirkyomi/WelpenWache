@@ -313,7 +313,7 @@
 
         await AccessRequestService.ApproveRequestAsync(_selectedRequest.Id, _currentUserName);
         
-        Snackbar.Add($"Benutzer {_selectedRequest.Username} wurde genehmigt", Severity.Success);
+        Snackbar.Add($"Benutzer {_selectedRequest.Username} wurde genehmigt. Der Benutzer muss die Seite neu laden.", Severity.Success);
         
         ClosePermissionDialog();
         await LoadData();
@@ -325,7 +325,7 @@
         }
 
         await PermissionService.SetPermissionsAsync(_selectedUser.Sid, _selectedPermissions);
-        Snackbar.Add($"Berechtigungen für {_selectedUser.Username} wurden aktualisiert", Severity.Success);
+        Snackbar.Add($"Berechtigungen für {_selectedUser.Username} wurden aktualisiert. Der Benutzer muss die Seite neu laden.", Severity.Success);
 
         CloseEditPermissionsDialog();
         await LoadData();

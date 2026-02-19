@@ -16,7 +16,7 @@ if (builder.Environment.IsDevelopment())
     builder.WebHost.UseHttpSys(options =>
     {
         options.Authentication.Schemes = AuthenticationSchemes.Negotiate;
-        options.Authentication.AllowAnonymous = false;
+        options.Authentication.AllowAnonymous = true;
         options.UrlPrefixes.Add("http://localhost:5278");
     });
 #pragma warning restore CA1416
@@ -33,26 +33,31 @@ builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
 
 builder.Services.AddScoped<IClaimsTransformation, PermissionClaimsTransformation>();
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.Intern.CanCreate, policy =>
-        policy.RequireClaim(
-            nameof(Permissions),
-            nameof(Permissions.Intern_Create)))
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Intern_Create))))
     .AddPolicy(Policies.Intern.CanRead, policy =>
-        policy.RequireClaim(
-            nameof(Permissions),
-            nameof(Permissions.Intern_Read)))
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Intern_Read))))
     .AddPolicy(Policies.Intern.CanUpdate, policy =>
-        policy.RequireClaim(
-            nameof(Permissions),
-            nameof(Permissions.Intern_Update)))
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Intern_Update))))
     .AddPolicy(Policies.Intern.CanDelete, policy =>
-        policy.RequireClaim(
-            nameof(Permissions),
-            nameof(Permissions.Intern_Delete)))
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Intern_Delete))))
     .AddPolicy(Policies.Admin.CanManageUsers, policy =>
         policy.RequireClaim(
             nameof(Permissions),
@@ -69,10 +74,9 @@ app.MapStaticAssets();
 
 app.UseRouting();
 
+app.UseAuthentication(); 
 app.UseSetupRedirect();
 app.UseAccessRequestRedirect();
-
-app.UseAuthentication(); 
 app.UseAuthorization();
 app.UseAntiforgery();
 

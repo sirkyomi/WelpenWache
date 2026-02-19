@@ -1,7 +1,6 @@
 ﻿@page "/setup"
 @using System.Security.Claims
 @using WelpenWache.Core.Services
-@attribute [AllowAnonymous]
 @inject SetupService SetupService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
@@ -99,7 +98,8 @@
         _processing = true;
 
         try {
-            await SetupService.CreateAdminUserAsync(_sid);
+            var username = string.IsNullOrWhiteSpace(_username) ? _sid ?? "Unbekannt" : _username;
+            await SetupService.CreateAdminUserAsync(_sid, username);
             _setupComplete = true;
             Snackbar.Add("Setup erfolgreich abgeschlossen! Sie haben jetzt Administrator-Rechte.", Severity.Success);
 

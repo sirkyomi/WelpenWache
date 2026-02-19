@@ -14,7 +14,7 @@ public class SetupService {
         return !await context.UserPermissions.AnyAsync();
     }
 
-    public async Task CreateAdminUserAsync(string windowsSid) {
+    public async Task CreateAdminUserAsync(string windowsSid, string username) {
         await using var context = await _contextFactory.CreateDbContextAsync();
         
         // Check if users already exist
@@ -28,6 +28,17 @@ public class SetupService {
             context.UserPermissions.Add(new UserPermission {
                 Sid = windowsSid,
                 Permission = permission
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(username)) {
+            context.AccessRequests.Add(new AccessRequest {
+                Sid = windowsSid,
+                Username = username,
+                RequestedAt = DateTime.UtcNow,
+                Status = AccessRequestStatus.Approved,
+                ProcessedAt = DateTime.UtcNow,
+                ProcessedBy = username
             });
         }
 

@@ -1,4 +1,4 @@
-﻿﻿namespace WelpenWache.Core;
+﻿namespace WelpenWache.Core;
 
 public class Policies {
     public class Admin {

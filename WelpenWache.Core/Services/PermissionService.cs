@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Principal;
 using WelpenWache.Core.Database;
 using WelpenWache.Core.Models;
 
@@ -43,13 +44,32 @@ public class PermissionService {
             .GroupBy(p => p.Sid)
             .Select(group => new UserWithPermissions {
                 Sid = group.Key,
-                Username = usernameMap.TryGetValue(group.Key, out var username)
-                    ? username
-                    : group.Key,
+                Username = ResolveUsername(group.Key, usernameMap),
                 Permissions = group.Select(p => p.Permission).OrderBy(p => p.ToString()).ToList()
             })
             .OrderBy(u => u.Username)
             .ToList();
+    }
+
+    private static string ResolveUsername(string sid, IReadOnlyDictionary<string, string> usernameMap) {
+        if (usernameMap.TryGetValue(sid, out var username) &&
+            !string.IsNullOrWhiteSpace(username) &&
+            !string.Equals(username, sid, StringComparison.OrdinalIgnoreCase)) {
+            return username;
+        }
+
+        var translated = TryTranslateSidToAccount(sid);
+        return string.IsNullOrWhiteSpace(translated) ? sid : translated;
+    }
+
+    private static string TryTranslateSidToAccount(string sid) {
+        try {
+            var securityIdentifier = new SecurityIdentifier(sid);
+            var account = (NTAccount)securityIdentifier.Translate(typeof(NTAccount));
+            return account.Value;
+        } catch {
+            return sid;
+        }
     }
 
     public async Task<bool> HasAnyPermissionAsync(string windowsSid) {
