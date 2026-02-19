@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <base href="/"/>
+    <base href="@_baseHref"/>
     <ResourcePreloader/>
     <link rel="stylesheet" href="@Assets["app.css"]"/>
     <link rel="stylesheet" href="@Assets["WelpenWache.styles.css"]"/>
@@ -22,5 +22,17 @@
 <script src="@Assets["_framework/blazor.web.js"]"></script>
 <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
 </body>
+
+@code {
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    private string _baseHref = "/";
+
+    protected override void OnInitialized() {
+        var uri = new Uri(NavigationManager.BaseUri);
+        var path = uri.AbsolutePath;
+        _baseHref = path.EndsWith("/") ? path : path + "/";
+    }
+}
 
 </html>
