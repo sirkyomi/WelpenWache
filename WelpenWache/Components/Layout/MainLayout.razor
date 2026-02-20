@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 <MudThemeProvider @ref="_mudThemeProvider" @bind-IsDarkMode="_isDarkMode" Theme="_accuminTheme"/>
 <MudPopoverProvider/>
 <MudSnackbarProvider/>
@@ -10,10 +10,13 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIcon Class="text-white" Icon="@Icons.Material.Filled.Pets" Title="Favorite"/>
-        <MudText Typo="Typo.h5" Class="ml-3 text-white">WelpenWache</MudText>
+        <MudStack Spacing="0" Class="ml-3 appbar-title">
+            <MudText Typo="Typo.h5" Class="text-white">WelpenWache</MudText>
+            <MudText Typo="Typo.caption" Class="appbar-version">@_appVersion</MudText>
+        </MudStack>
         <MudSpacer/>
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
-                       aria-label="delete" Class="appbarIconButton" OnClick="DarkmodeToggle"/>
+                       aria-label="toggle color mode" Class="appbarIconButton" OnClick="DarkmodeToggle"/>
     </MudAppBar>
         <MudDrawer Open ClipMode="DrawerClipMode.Docked" Elevation="2" Variant="DrawerVariant.Mini"
                    Class="rounded-appbar">
@@ -27,6 +30,8 @@
 </MudLayout>
 
 @code {
+    private static readonly string _appVersion = ThisAssembly.AssemblyInformationalVersion;
+
     private bool _isDarkMode;
     private MudThemeProvider _mudThemeProvider = null!;
 

@@ -277,6 +277,12 @@ The application uses Entity Framework Core with SQL Server. Configure your conne
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Merge Strategy
+
+- Pull requests into `master` must use **Squash and merge** only.
+- Do not use merge commits or rebase merges for `master`.
+- This keeps Nerdbank commit height aligned with one commit per merged PR on `master`.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
