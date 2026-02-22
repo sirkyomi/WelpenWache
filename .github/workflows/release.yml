@@ -43,6 +43,23 @@ jobs:
 
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
+          "artifact=WelpenWache-IIS-v$version.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore ./WelpenWache.slnx
+
+      - name: Build
+        run: dotnet build ./WelpenWache.slnx --configuration Release --no-restore
+
+      - name: Publish web app for IIS
+        run: dotnet publish ./WelpenWache/WelpenWache.csproj --configuration Release --no-build --output ./out/publish
+
+      - name: Package publish output
+        shell: bash
+        run: |
+          mkdir -p ./out
+          cd ./out/publish
+          zip -r "../${{ steps.version.outputs.artifact }}" .
 
       - name: Create tag when missing
         shell: bash
@@ -64,3 +81,4 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          files: ./out/${{ steps.version.outputs.artifact }}
