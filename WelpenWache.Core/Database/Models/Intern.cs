@@ -6,4 +6,6 @@ public class Intern {
     public required string Surname { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+
+    public ICollection<InternTeamAssignment> TeamAssignments { get; set; } = [];
 }

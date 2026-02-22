@@ -1,0 +1,10 @@
+.team-name-cell {
+    display: inline-flex;
+    align-items: center;
+    width: min(100%, 360px);
+    min-height: 40px;
+    border: 1px solid var(--team-border);
+    border-radius: 14px;
+    padding: 8px 12px;
+    background: var(--team-fill);
+}

@@ -11,5 +11,12 @@ public class Policies {
         public const string CanUpdate = "CanUpdateIntern";
         public const string CanRead = "CanReadIntern";
     }
+
+    public class Team {
+        public const string CanCreate = "CanCreateTeam";
+        public const string CanDelete = "CanDeleteTeam";
+        public const string CanUpdate = "CanUpdateTeam";
+        public const string CanRead = "CanReadTeam";
+    }
     
 }

@@ -27,8 +27,8 @@
 }
 
 .calendar-day:not(.empty):hover {
-    border-color: #594ae2;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: var(--mud-palette-primary);
+    box-shadow: var(--mud-elevation-4);
     transform: translateY(-2px);
 }
 
@@ -41,8 +41,8 @@
 }
 
 .calendar-day.today {
-    border: 2px solid #594ae2;
-    background: rgba(89, 74, 226, 0.08);
+    border: 2px solid var(--mud-palette-primary);
+    background: var(--mud-palette-surface);
 }
 
 .calendar-day.weekend {
@@ -50,7 +50,7 @@
 }
 
 .calendar-day.overloaded {
-    background: rgba(244, 67, 54, 0.08);
+    border-color: var(--mud-palette-error);
 }
 
 .calendar-day.empty {
@@ -67,7 +67,7 @@
     top: 4px;
     right: 4px;
     background-color: var(--mud-palette-success);
-    color: white;
+    color: var(--mud-palette-success-text);
     border-radius: 50%;
     width: 20px;
     height: 20px;
@@ -76,7 +76,7 @@
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: var(--mud-elevation-2);
 }
 
 .intern-initials-container {
@@ -92,25 +92,56 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #594ae2 0%, #7c3aed 100%);
-    color: white;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
     font-size: 0.65rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    box-shadow: var(--mud-elevation-1);
     transition: all 0.2s;
 }
 
 .intern-initial.more {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    background: var(--mud-palette-error);
+    color: var(--mud-palette-error-text);
     font-size: 0.6rem;
 }
 
 .intern-initial:hover {
     transform: scale(1.2);
     z-index: 10;
+}
+
+.team-markers {
+    margin-top: 6px;
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+.team-marker {
+    width: 22px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--team-fill);
+}
+
+.team-marker-more {
+    width: auto;
+    min-width: 22px;
+    height: 14px;
+    border-radius: 999px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mud-palette-divider);
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.6rem;
+    font-weight: 700;
 }
 
 /* Intern Card */
@@ -122,7 +153,7 @@
 
 .intern-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: var(--mud-elevation-4);
 }
 
 .intern-card-readonly {
@@ -130,8 +161,21 @@
     margin-bottom: 12px;
 }
 
+.intern-card-active {
+    border-left: 4px solid var(--mud-palette-success);
+}
+
 .intern-details {
     margin-top: 8px;
+}
+
+.team-line {
+    max-width: 100%;
+    min-height: 30px;
+}
+
+.team-line-text {
+    overflow-wrap: anywhere;
 }
 
 /* Flucht/Kaskaden-Effekt für Von/Bis Karten */
@@ -139,10 +183,10 @@
     padding: 8px 12px;
     background: var(--mud-palette-surface);
     border-radius: 6px;
-    border-left: 6px solid #594ae2;
+    border-left: 6px solid var(--mud-palette-primary);
     transition: all 0.3s ease;
     position: relative;
-    box-shadow: 0 2px 4px rgba(89, 74, 226, 0.15);
+    box-shadow: var(--mud-elevation-1);
 }
 
 .date-card.from-card {
@@ -155,12 +199,12 @@
     margin-top: 12px;
     margin-left: -8px;
     z-index: 1;
-    border-left-color: #7c3aed;
+    border-left-color: var(--mud-palette-secondary);
 }
 
 .date-card:hover {
     transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(89, 74, 226, 0.25);
+    box-shadow: var(--mud-elevation-3);
     border-left-width: 8px;
 }
 
@@ -242,8 +286,13 @@
 }
 
 .timeline-day.present {
-    background: #594ae2;
+    background: var(--mud-palette-primary);
     opacity: 0.7;
+}
+
+.timeline-day.present.team-present {
+    background: var(--team-fill);
+    opacity: 1;
 }
 
 .timeline-day.present.start {

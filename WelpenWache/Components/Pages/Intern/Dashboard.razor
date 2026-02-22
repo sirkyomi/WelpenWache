@@ -4,6 +4,7 @@
 @using WelpenWache.Core
 @using WelpenWache.Core.Features.Intern
 @using WelpenWache.Core.Features.Intern.Models
+@using WelpenWache.Components.Styling
 @inject IInternService InternService
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
@@ -130,6 +131,7 @@
                             var currentDay = day;
                             var date = new DateTime(_selectedDate.Value.Year, _selectedDate.Value.Month, currentDay);
                             var internsOnDate = GetInternsOnDate(date);
+                            var teamsOnDate = GetTeamsOnDate(internsOnDate, date);
                             var count = internsOnDate.Count;
                             var isToday = date.Date == DateTime.Today;
                             var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
@@ -158,6 +160,21 @@
                                             </div>
                                         }
                                     </div>
+
+                                    @if (teamsOnDate.Any()) {
+                                        <div class="team-markers">
+                                            @foreach (var team in teamsOnDate.Take(2)) {
+                                                <div class="team-marker team-color-scope"
+                                                     style="@GetTeamStyle(team)"
+                                                     title="@team"></div>
+                                            }
+                                            @if (teamsOnDate.Count > 2) {
+                                                <div class="team-marker team-marker-more" title="@(teamsOnDate.Count - 2) weitere Teams">
+                                                    +@(teamsOnDate.Count - 2)
+                                                </div>
+                                            }
+                                        </div>
+                                    }
                                 }
                             </div>
                         }
@@ -209,8 +226,7 @@
                                 var daysLeft = (intern.EndDate - DateTime.Today).Days;
 
                                 <MudPaper Elevation="1"
-                                          Class="pa-4 intern-card"
-                                          Style="@(isActive ? "border-left: 4px solid #00C853;" : "")"
+                                          Class="@($"pa-4 intern-card {(isActive ? "intern-card-active" : "")}")"
                                           @onclick="@(() => NavigateToManage())">
                                     @* ...existing intern card content... *@
                                     <MudStack Spacing="2">
@@ -263,6 +279,26 @@
                                                     }
                                                 </MudText>
                                             </MudStack>
+                                            @{
+                                                var todayTeam = GetTeamForDate(intern, DateTime.Today);
+                                                var hasTodayTeam = !string.Equals(todayTeam, "Kein Team", StringComparison.Ordinal);
+                                            }
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="team-line">
+                                                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small"
+                                                         Color="Color.Primary" />
+                                                @if (hasTodayTeam) {
+                                                    <div class="team-label team-color-scope"
+                                                         style="@GetTeamStyle(todayTeam)"
+                                                         title="@todayTeam">
+                                                        @todayTeam
+                                                    </div>
+                                                }
+                                                else {
+                                                    <MudText Typo="Typo.caption" Class="team-line-text" title="@todayTeam">
+                                                        Heute: @todayTeam
+                                                    </MudText>
+                                                }
+                                            </MudStack>
                                         </div>
 
                                         @* Fortschrittsbalken *@
@@ -283,8 +319,7 @@
                                 var daysLeft = (intern.EndDate - DateTime.Today).Days;
 
                                 <MudPaper Elevation="1"
-                                          Class="pa-4 intern-card-readonly"
-                                          Style="@(isActive ? "border-left: 4px solid #00C853;" : "")">
+                                          Class="@($"pa-4 intern-card-readonly {(isActive ? "intern-card-active" : "")}")">
                                     @* ...existing intern card content... *@
                                     <MudStack Spacing="2">
                                         <MudStack Row="true" AlignItems="AlignItems.Center"
@@ -335,6 +370,26 @@
                                                         <span class="mud-text-secondary">• noch @daysLeft Tage</span>
                                                     }
                                                 </MudText>
+                                            </MudStack>
+                                            @{
+                                                var todayTeam = GetTeamForDate(intern, DateTime.Today);
+                                                var hasTodayTeam = !string.Equals(todayTeam, "Kein Team", StringComparison.Ordinal);
+                                            }
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="team-line">
+                                                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small"
+                                                         Color="Color.Primary" />
+                                                @if (hasTodayTeam) {
+                                                    <div class="team-label team-color-scope"
+                                                         style="@GetTeamStyle(todayTeam)"
+                                                         title="@todayTeam">
+                                                        @todayTeam
+                                                    </div>
+                                                }
+                                                else {
+                                                    <MudText Typo="Typo.caption" Class="team-line-text" title="@todayTeam">
+                                                        Heute: @todayTeam
+                                                    </MudText>
+                                                }
                                             </MudStack>
                                         </div>
 
@@ -414,9 +469,13 @@
                                                 var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
                                                 var isStart = date.Date == intern.StartDate.Date;
                                                 var isEnd = date.Date == intern.EndDate.Date;
-                                                var dayClasses = $"timeline-day {(isWeekend ? "weekend" : "")} {(isPresent ? "present" : "")} {(isStart ? "start" : "")} {(isEnd ? "end" : "")}";
+                                                var teamForDate = GetTeamForDate(intern, date);
+                                                var hasTeam = isPresent && !string.Equals(teamForDate, "Kein Team", StringComparison.Ordinal);
+                                                var dayClasses = $"timeline-day {(isWeekend ? "weekend" : "")} {(isPresent ? "present" : "")} {(hasTeam ? "team-color-scope team-present" : "")} {(isStart ? "start" : "")} {(isEnd ? "end" : "")}";
 
-                                                <div class="@dayClasses">
+                                                <div class="@dayClasses"
+                                                     style="@(hasTeam ? GetTeamStyle(teamForDate) : string.Empty)"
+                                                     title="@(isPresent ? teamForDate : "")">
                                                 </div>
                                             }
                                         </div>
@@ -473,7 +532,8 @@
         var parameters = new DialogParameters {
             ["Interns"] = internsOnDate,
             ["Date"] = dateStr,
-            ["Count"] = internsOnDate.Count
+            ["Count"] = internsOnDate.Count,
+            ["SelectedDate"] = date
         };
 
         var options = new DialogOptions {
@@ -553,9 +613,28 @@
 
     private double GetProgress(InternDto intern) {
         var total = (intern.EndDate - intern.StartDate).TotalDays;
+        if (total <= 0) {
+            return 100;
+        }
+
         var elapsed = (DateTime.Today - intern.StartDate).TotalDays;
         return Math.Min(100, Math.Max(0, (elapsed / total) * 100));
     }
+
+    private static string GetTeamForDate(InternDto intern, DateTime date) {
+        return intern.DayAssignments.FirstOrDefault(x => x.Date.Date == date.Date)?.TeamName ?? "Kein Team";
+    }
+
+    private static List<string> GetTeamsOnDate(IEnumerable<InternDto> interns, DateTime date) {
+        return interns
+            .Select(i => GetTeamForDate(i, date))
+            .Where(t => !string.IsNullOrWhiteSpace(t) && t != "Kein Team")
+            .Distinct()
+            .OrderBy(t => t)
+            .ToList();
+    }
+
+    private static string GetTeamStyle(string teamName) => TeamColorHelper.GetHueStyle(teamName);
 
     private static string GetInitials(string name, string surname) {
         var firstInitial = !string.IsNullOrEmpty(name) ? name[0].ToString().ToUpper() : "?";

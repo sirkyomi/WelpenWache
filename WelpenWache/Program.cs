@@ -58,6 +58,22 @@ builder.Services.AddAuthorizationBuilder()
         policy.RequireAssertion(ctx =>
             ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
             ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Intern_Delete))))
+    .AddPolicy(Policies.Team.CanCreate, policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Team_Create))))
+    .AddPolicy(Policies.Team.CanRead, policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Team_Read))))
+    .AddPolicy(Policies.Team.CanUpdate, policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Team_Update))))
+    .AddPolicy(Policies.Team.CanDelete, policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Admin)) ||
+            ctx.User.HasClaim(nameof(Permissions), nameof(Permissions.Team_Delete))))
     .AddPolicy(Policies.Admin.CanManageUsers, policy =>
         policy.RequireClaim(
             nameof(Permissions),

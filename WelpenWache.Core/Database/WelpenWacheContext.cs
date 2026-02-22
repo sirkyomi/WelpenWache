@@ -5,6 +5,8 @@ namespace WelpenWache.Core.Database;
 
 public class WelpenWacheContext(DbContextOptions<WelpenWacheContext> options) : DbContext(options) {
     public DbSet<Intern> Interns { get; set; }
+    public DbSet<Team> Teams { get; set; }
+    public DbSet<InternTeamAssignment> InternTeamAssignments { get; set; }
     public DbSet<UserPermission> UserPermissions { get; set; }
     public DbSet<AccessRequest> AccessRequests { get; set; }
 
@@ -16,5 +18,25 @@ public class WelpenWacheContext(DbContextOptions<WelpenWacheContext> options) : 
         
         modelBuilder.Entity<AccessRequest>()
             .Property(p => p.Status).HasConversion<string>();
+
+        modelBuilder.Entity<InternTeamAssignment>()
+            .HasOne(x => x.Intern)
+            .WithMany(x => x.TeamAssignments)
+            .HasForeignKey(x => x.InternId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<InternTeamAssignment>()
+            .HasOne(x => x.Team)
+            .WithMany(x => x.InternAssignments)
+            .HasForeignKey(x => x.TeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<InternTeamAssignment>()
+            .HasIndex(x => new { x.InternId, x.Date })
+            .IsUnique();
+
+        modelBuilder.Entity<Team>()
+            .Property(x => x.Name)
+            .HasMaxLength(200);
     }
 }
