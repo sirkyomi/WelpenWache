@@ -5,5 +5,9 @@ public enum Permissions {
     Intern_Create,
     Intern_Read,
     Intern_Update,
-    Intern_Delete
+    Intern_Delete,
+    Team_Create,
+    Team_Read,
+    Team_Update,
+    Team_Delete
 }

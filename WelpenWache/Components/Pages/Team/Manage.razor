@@ -1,0 +1,205 @@
+﻿@page "/team/manage"
+@using WelpenWache.Core
+@using WelpenWache.Core.Features.Team
+@using WelpenWache.Core.Features.Team.Models
+@using WelpenWache.Components.Styling
+@inject ITeamService TeamService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Policy = Policies.Team.CanRead)]
+
+<PageTitle>WelpenWache - Teams</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudPaper Elevation="4" Class="pa-6">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Size="Size.Large" />
+            <div class="grow">
+                <MudText Typo="Typo.h5">Teams verwalten</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @_teams.Count Team@(_teams.Count != 1 ? "s" : "") im System
+                </MudText>
+            </div>
+            <AuthorizeView Policy="@Policies.Team.CanCreate">
+                <Authorized>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="OpenCreateDialog">
+                        Team hinzufügen
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </MudStack>
+
+        <MudTable Items="@_teams"
+                  Filter="new Func<TeamDto, bool>(FilterTeams)"
+                  Hover="true"
+                  Breakpoint="Breakpoint.Sm"
+                  Loading="@_loading"
+                  Elevation="0">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_searchString"
+                              Placeholder="Team suchen..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Immediate="true"
+                              Style="max-width: 380px;" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh Style="width: 180px;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="team">
+                <MudTd DataLabel="Name">
+                    <div class="team-name-cell team-color-scope" style="@TeamColorHelper.GetHueStyle(team.Name)">
+                        <MudText Typo="Typo.body1"><strong>@team.Name</strong></MudText>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Aktionen">
+                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                        <AuthorizeView Policy="@Policies.Team.CanUpdate">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="() => OpenEditDialog(team)" />
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@Policies.Team.CanDelete">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="() => DeleteTeamAsync(team)" />
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    Keine Teams vorhanden.
+                </MudAlert>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+<MudDialog @bind-Visible="_showDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(_editMode ? "Team bearbeiten" : "Neues Team")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_teamName"
+                      Label="Teamname"
+                      Variant="Variant.Outlined"
+                      Required
+                      Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="CloseDialog">Abbrechen</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@string.IsNullOrWhiteSpace(_teamName)"
+                   OnClick="SaveTeamAsync">
+            Speichern
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+    private readonly List<TeamDto> _teams = [];
+    private bool _loading = true;
+    private bool _showDialog;
+    private bool _editMode;
+    private Guid _editingId = Guid.Empty;
+    private string _teamName = string.Empty;
+    private string? _searchString;
+
+    protected override async Task OnInitializedAsync() {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync() {
+        _loading = true;
+        try {
+            var teams = await TeamService.GetTeamsAsync();
+            _teams.Clear();
+            _teams.AddRange(teams);
+        }
+        catch (Exception ex) {
+            Snackbar.Add($"Teams konnten nicht geladen werden: {ex.Message}", Severity.Error);
+        }
+        finally {
+            _loading = false;
+        }
+    }
+
+    private void OpenCreateDialog() {
+        _editMode = false;
+        _editingId = Guid.Empty;
+        _teamName = string.Empty;
+        _showDialog = true;
+    }
+
+    private void OpenEditDialog(TeamDto team) {
+        _editMode = true;
+        _editingId = team.Id;
+        _teamName = team.Name;
+        _showDialog = true;
+    }
+
+    private void CloseDialog() {
+        _showDialog = false;
+        _teamName = string.Empty;
+        _editingId = Guid.Empty;
+        _editMode = false;
+    }
+
+    private async Task SaveTeamAsync() {
+        try {
+            if (_editMode) {
+                await TeamService.UpdateTeamAsync(new TeamDto {
+                    Id = _editingId,
+                    Name = _teamName
+                });
+                Snackbar.Add("Team wurde aktualisiert.", Severity.Success);
+            }
+            else {
+                await TeamService.CreateTeamAsync(_teamName);
+                Snackbar.Add("Team wurde erstellt.", Severity.Success);
+            }
+
+            CloseDialog();
+            await LoadDataAsync();
+        }
+        catch (Exception ex) {
+            Snackbar.Add($"Team konnte nicht gespeichert werden: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteTeamAsync(TeamDto team) {
+        try {
+            await TeamService.DeleteTeamAsync(team.Id);
+            Snackbar.Add($"Team '{team.Name}' wurde gelöscht.", Severity.Success);
+            await LoadDataAsync();
+        }
+        catch (Exception ex) {
+            Snackbar.Add($"Team konnte nicht gelöscht werden: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool FilterTeams(TeamDto team) {
+        if (string.IsNullOrWhiteSpace(_searchString)) {
+            return true;
+        }
+
+        return team.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+}
+

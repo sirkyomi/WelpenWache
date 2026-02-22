@@ -1,0 +1,532 @@
+﻿@using System.Globalization
+@using WelpenWache.Core.Features.Intern
+@using WelpenWache.Core.Features.Intern.Models
+@using WelpenWache.Core.Features.Team
+@using WelpenWache.Core.Features.Team.Models
+@using WelpenWache.Components.Styling
+@inject IInternService InternService
+@inject ITeamService TeamService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="intern-wizard-dialog">
+    <TitleContent>
+        <MudStack Spacing="1" Class="wizard-title">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.PersonAdd)" Color="Color.Primary" />
+                <MudText Typo="Typo.h5">@(_isEditMode ? "Praktikant bearbeiten" : "Neuer Praktikant")</MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Schritt @(_activeStep + 1) von 3
+            </MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStepper @bind-ActiveIndex="_activeStep" Linear="false" Elevation="0" Class="mb-4 wizard-stepper">
+            <ActionContent Context="_">
+            </ActionContent>
+            <ChildContent>
+                <MudStep Title="Stammdaten" />
+                <MudStep Title="Teams pro Tag" />
+                <MudStep Title="Übersicht" />
+            </ChildContent>
+        </MudStepper>
+
+        @if (_teams.Count == 0) {
+            <MudAlert Severity="Severity.Warning" Dense="true" Icon="@Icons.Material.Filled.Warning">
+                Es gibt noch keine Teams. Bitte zuerst ein Team anlegen.
+            </MudAlert>
+        }
+
+        @if (_activeStep == 0) {
+            <MudStack Spacing="3" Class="wizard-step">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_name"
+                                      Label="Vorname"
+                                      Required
+                                      Variant="Variant.Outlined"
+                                      Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_surname"
+                                      Label="Nachname"
+                                      Required
+                                      Variant="Variant.Outlined"
+                                      Immediate="true" />
+                    </MudItem>
+                </MudGrid>
+                <MudPaper Class="pa-3 date-card-modern" Elevation="0">
+                    <MudDateRangePicker @bind-DateRange="_range"
+                                        Label="Zeitraum"
+                                        Required
+                                        Variant="Variant.Outlined"
+                                        PickerVariant="PickerVariant.Inline"
+                                        Modal="false"
+                                        Editable="true" />
+                </MudPaper>
+            </MudStack>
+        }
+
+        @if (_activeStep == 1) {
+            <MudStack Spacing="3" Class="wizard-step">
+                @if (_internDays.Count == 0) {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        Bitte zuerst einen gültigen Zeitraum wählen.
+                    </MudAlert>
+                }
+                else {
+                    <MudPaper Elevation="0" Class="pa-4 week-card planner-toolbar">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudText Typo="Typo.subtitle2">Ausgewählte Tage: @_selectedDays.Count</MudText>
+                            <MudSelect T="Guid?"
+                                       Label="Team für Auswahl"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Value="@_selectedTeamForRange"
+                                       ValueChanged="(Guid? teamId) => _selectedTeamForRange = teamId"
+                                       Style="min-width: 230px;">
+                                @foreach (var team in _teams) {
+                                    <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Disabled="@(!_selectedTeamForRange.HasValue || _selectedDays.Count == 0)"
+                                       OnClick="AssignSelectedDays">
+                                Auf Auswahl anwenden
+                            </MudButton>
+                            <MudButton Variant="Variant.Text"
+                                       Disabled="@(_selectedDays.Count == 0)"
+                                       OnClick="ClearSelection">
+                                Auswahl leeren
+                            </MudButton>
+                            <MudText Typo="Typo.caption" Class="planner-hint">
+                                Ziehen mit der Maus markiert zusammenhaengende Bereiche
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudPaper Elevation="0" Class="pa-4 week-card">
+                        <div class="timeline-container planner-timeline"
+                             @onmouseup="EndDrag"
+                             @onmouseleave="EndDrag">
+                            <div class="timeline-header">
+                                <div class="timeline-name-col">Planung</div>
+                                <div class="timeline-days">
+                                    @foreach (var day in _internDays) {
+                                        var isWeekend = day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+                                        var headerClasses = $"timeline-day-header {(isWeekend ? "weekend" : string.Empty)}";
+                                        <div class="@headerClasses">
+                                            <span class="day-num">@day.Day</span>
+                                            <span class="day-name">@day.ToString("ddd", new CultureInfo("de-DE")).Substring(0, 2)</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="timeline-body">
+                                <div class="timeline-row">
+                                    <div class="timeline-name-col">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2"><strong>Teamzuordnung</strong></MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                @_range.Start?.ToString("dd.MM.yyyy") - @_range.End?.ToString("dd.MM.yyyy")
+                                            </MudText>
+                                        </MudStack>
+                                    </div>
+                                    <div class="timeline-days">
+                                        @for (var i = 0; i < _internDays.Count; i++) {
+                                            var day = _internDays[i];
+                                            var isSelected = _selectedDays.Contains(day);
+                                            var teamId = GetTeamForDay(day);
+                                            var teamName = GetTeamName(teamId);
+                                            var hasTeam = teamId.HasValue;
+                                            var isWeekend = day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+                                            var prevTeamId = i > 0 ? GetTeamForDay(_internDays[i - 1]) : null;
+                                            var nextTeamId = i < _internDays.Count - 1 ? GetTeamForDay(_internDays[i + 1]) : null;
+                                            var sameAsPrevious = hasTeam && prevTeamId == teamId;
+                                            var sameAsNext = hasTeam && nextTeamId == teamId;
+                                            var blockStartClass = hasTeam && !sameAsPrevious ? "assigned-start" : string.Empty;
+                                            var blockEndClass = hasTeam && !sameAsNext ? "assigned-end" : string.Empty;
+                                            var teamStyle = hasTeam ? TeamColorHelper.GetHueStyle(teamName) : string.Empty;
+                                            var cellClasses = $"timeline-day selectable {(isWeekend ? "weekend" : string.Empty)} {(hasTeam ? "assigned team-color-scope" : string.Empty)} {blockStartClass} {blockEndClass} {(isSelected ? "selected" : string.Empty)}";
+                                            
+                                            <div class="@cellClasses"
+                                                 style="@teamStyle"
+                                                 title="@($"{day:dddd, dd.MM.yyyy} • {teamName}")"
+                                                 @onmousedown="@(() => BeginDrag(day))"
+                                                 @onmouseenter="@(() => ContinueDrag(day))"
+                                                 @onmouseup="EndDrag">
+                                                @if (hasTeam) {
+                                                    <span class="planner-team-label">@GetTeamShortName(teamName)</span>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+
+        @if (_activeStep == 2) {
+            <MudStack Spacing="2" Class="wizard-step">
+                <MudPaper Elevation="0" Class="pa-3 summary-head">
+                    <MudText Typo="Typo.subtitle1"><strong>@_name @_surname</strong></MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @_range.Start?.ToString("dd.MM.yyyy") - @_range.End?.ToString("dd.MM.yyyy")
+                    </MudText>
+                </MudPaper>
+                <MudPaper Elevation="0" Class="pa-4 week-card">
+                    <div class="timeline-container planner-timeline">
+                        <div class="timeline-header">
+                            <div class="timeline-name-col">Übersicht</div>
+                            <div class="timeline-days">
+                                @foreach (var day in _internDays) {
+                                    var isWeekend = day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+                                    var headerClasses = $"timeline-day-header {(isWeekend ? "weekend" : string.Empty)}";
+                                    <div class="@headerClasses">
+                                        <span class="day-num">@day.Day</span>
+                                        <span class="day-name">@day.ToString("ddd", new CultureInfo("de-DE")).Substring(0, 2)</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="timeline-body">
+                            <div class="timeline-row">
+                                <div class="timeline-name-col">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2"><strong>Teamzuordnung</strong></MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            Finale Vorschau vor dem Speichern
+                                        </MudText>
+                                    </MudStack>
+                                </div>
+                                <div class="timeline-days">
+                                    @for (var i = 0; i < _internDays.Count; i++) {
+                                        var day = _internDays[i];
+                                        var teamId = GetTeamForDay(day);
+                                        var teamName = GetTeamName(teamId);
+                                        var hasTeam = teamId.HasValue;
+                                        var isWeekend = day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+                                        var prevTeamId = i > 0 ? GetTeamForDay(_internDays[i - 1]) : null;
+                                        var nextTeamId = i < _internDays.Count - 1 ? GetTeamForDay(_internDays[i + 1]) : null;
+                                        var sameAsPrevious = hasTeam && prevTeamId == teamId;
+                                        var sameAsNext = hasTeam && nextTeamId == teamId;
+                                        var blockStartClass = hasTeam && !sameAsPrevious ? "assigned-start" : string.Empty;
+                                        var blockEndClass = hasTeam && !sameAsNext ? "assigned-end" : string.Empty;
+                                        var teamStyle = hasTeam ? TeamColorHelper.GetHueStyle(teamName) : string.Empty;
+                                        var cellClasses = $"timeline-day {(isWeekend ? "weekend" : string.Empty)} {(hasTeam ? "assigned team-color-scope" : string.Empty)} {blockStartClass} {blockEndClass}";
+
+                                        <div class="@cellClasses"
+                                             style="@teamStyle"
+                                             title="@($"{day:dddd, dd.MM.yyyy} • {teamName}")">
+                                            @if (hasTeam) {
+                                                <span class="planner-team-label">@GetTeamShortName(teamName)</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Abbrechen</MudButton>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text"
+                   Disabled="@(_activeStep == 0)"
+                   OnClick="Zurueck">
+            Zurück
+        </MudButton>
+        @if (_activeStep < 2) {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(!CanWeiter)"
+                       OnClick="Weiter">
+                Weiter
+            </MudButton>
+        }
+        else {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(!IsStep2Valid || _saving)"
+                       OnClick="SaveAsync">
+                Speichern
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly DayOfWeek[] WeekDays = [
+        DayOfWeek.Monday,
+        DayOfWeek.Tuesday,
+        DayOfWeek.Wednesday,
+        DayOfWeek.Thursday,
+        DayOfWeek.Friday,
+        DayOfWeek.Saturday,
+        DayOfWeek.Sunday
+    ];
+
+    private sealed class WeekGroup {
+        public DateTime WeekStart { get; set; }
+        public DateTime WeekEnd { get; set; }
+        public Dictionary<DayOfWeek, DateTime> DayMap { get; set; } = [];
+    }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public InternDto? InternToEdit { get; set; }
+
+    private readonly List<TeamDto> _teams = [];
+    private readonly List<DateTime> _internDays = [];
+    private readonly Dictionary<DateTime, Guid?> _teamByDate = new();
+    private readonly List<WeekGroup> _weekGroups = [];
+    private readonly HashSet<DateTime> _selectedDays = [];
+
+    private int _activeStep;
+    private bool _isEditMode;
+    private bool _isDragging;
+    private bool _dragSelectMode = true;
+    private bool _saving;
+    private string _name = string.Empty;
+    private string _surname = string.Empty;
+    private DateRange _range = new();
+    private Guid? _selectedTeamForRange;
+
+    private bool IsStep1Valid =>
+        !string.IsNullOrWhiteSpace(_name) &&
+        !string.IsNullOrWhiteSpace(_surname) &&
+        _range.Start.HasValue &&
+        _range.End.HasValue &&
+        _range.Start.Value.Date <= _range.End.Value.Date;
+
+    private bool IsStep2Valid =>
+        _teams.Count > 0 &&
+        _internDays.Count > 0 &&
+        _internDays.All(day => _teamByDate.TryGetValue(day, out var teamId) && teamId.HasValue && teamId.Value != Guid.Empty);
+
+    private bool CanWeiter => _activeStep switch {
+        0 => IsStep1Valid,
+        1 => IsStep2Valid,
+        _ => false
+    };
+
+    protected override async Task OnInitializedAsync() {
+        _isEditMode = InternToEdit != null;
+        _teams.AddRange(await TeamService.GetTeamsAsync());
+
+        if (InternToEdit != null) {
+            _name = InternToEdit.Name;
+            _surname = InternToEdit.Surname;
+            _range = new DateRange(InternToEdit.StartDate, InternToEdit.EndDate);
+            BuildInternDays();
+            foreach (var assignment in InternToEdit.DayAssignments) {
+                _teamByDate[assignment.Date.Date] = assignment.TeamId;
+            }
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Zurueck() {
+        if (_activeStep > 0) {
+            _activeStep--;
+        }
+    }
+
+    private void Weiter() {
+        if (_activeStep == 0) {
+            BuildInternDays();
+        }
+
+        if (!CanWeiter) {
+            return;
+        }
+
+        _activeStep++;
+    }
+
+    private async Task SaveAsync() {
+        if (!IsStep1Valid || !IsStep2Valid || _saving || !_range.Start.HasValue || !_range.End.HasValue) {
+            return;
+        }
+
+        _saving = true;
+        try {
+            var assignments = _internDays
+                .Select(day => new InternDayAssignmentCreateRequest(day, _teamByDate[day]!.Value))
+                .ToList();
+
+            if (_isEditMode && InternToEdit != null) {
+                var updateDto = new InternDto {
+                    Id = InternToEdit.Id,
+                    Name = _name.Trim(),
+                    Surname = _surname.Trim(),
+                    StartDate = _range.Start.Value.Date,
+                    EndDate = _range.End.Value.Date,
+                    DayAssignments = assignments.Select(x => new InternDayAssignmentDto {
+                        Date = x.Date,
+                        TeamId = x.TeamId,
+                        TeamName = GetTeamName(x.TeamId)
+                    }).ToList()
+                };
+
+                await InternService.UpdateInternAsync(updateDto);
+                Snackbar.Add("Praktikant erfolgreich bearbeitet.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(InternToEdit.Id));
+                return;
+            }
+
+            var id = await InternService.CreateInternAsync(new InternCreateRequest(
+                _name.Trim(),
+                _surname.Trim(),
+                _range.Start.Value.Date,
+                _range.End.Value.Date,
+                assignments));
+
+            Snackbar.Add("Praktikant erfolgreich erstellt.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(id));
+        }
+        catch (Exception ex) {
+            Snackbar.Add($"Speichern fehlgeschlagen: {ex.Message}", Severity.Error);
+        }
+        finally {
+            _saving = false;
+        }
+    }
+
+    private void BuildInternDays() {
+        _internDays.Clear();
+        _weekGroups.Clear();
+        _selectedDays.Clear();
+        if (!_range.Start.HasValue || !_range.End.HasValue) {
+            return;
+        }
+
+        var start = _range.Start.Value.Date;
+        var end = _range.End.Value.Date;
+        if (start > end) {
+            return;
+        }
+
+        var preserved = _teamByDate.ToDictionary(x => x.Key, x => x.Value);
+        _teamByDate.Clear();
+
+        for (var date = start; date <= end; date = date.AddDays(1)) {
+            var normalizedDate = date.Date;
+            _internDays.Add(normalizedDate);
+            _teamByDate[normalizedDate] = preserved.TryGetValue(normalizedDate, out var existingTeam) ? existingTeam : null;
+        }
+
+        var groupedByWeek = _internDays
+            .GroupBy(GetWeekStart)
+            .OrderBy(x => x.Key)
+            .ToList();
+
+        foreach (var week in groupedByWeek) {
+            var orderedDays = week.OrderBy(x => x).ToList();
+            var dayMap = orderedDays.ToDictionary(x => x.DayOfWeek, x => x);
+            _weekGroups.Add(new WeekGroup {
+                WeekStart = orderedDays.First(),
+                WeekEnd = orderedDays.Last(),
+                DayMap = dayMap
+            });
+        }
+    }
+
+    private static DateTime GetWeekStart(DateTime date) {
+        var diff = ((int)date.DayOfWeek + 6) % 7;
+        return date.Date.AddDays(-diff);
+    }
+
+    private static int GetIsoWeek(DateTime date) =>
+        CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(date, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+
+    private static IEnumerable<DateTime> GetOrderedWeekDays(WeekGroup week) {
+        foreach (var day in WeekDays) {
+            if (week.DayMap.TryGetValue(day, out var dayDate)) {
+                yield return dayDate;
+            }
+        }
+    }
+
+    private Guid? GetTeamForDay(DateTime day) => _teamByDate.TryGetValue(day.Date, out var teamId) ? teamId : null;
+
+    private void SetTeamForDay(DateTime day, Guid? teamId) {
+        _teamByDate[day.Date] = teamId;
+    }
+
+    private string GetTeamName(Guid? teamId) {
+        if (!teamId.HasValue) {
+            return "Nicht gesetzt";
+        }
+
+        return _teams.FirstOrDefault(x => x.Id == teamId.Value)?.Name ?? "Unbekannt";
+    }
+
+    private static string GetTeamShortName(string teamName) {
+        if (string.IsNullOrWhiteSpace(teamName) || teamName == "Nicht gesetzt" || teamName == "Unbekannt") {
+            return "-";
+        }
+
+        var parts = teamName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 1) {
+            var initials = string.Concat(parts.Select(p => char.ToUpperInvariant(p[0])));
+            return initials.Length > 3 ? initials[..3] : initials;
+        }
+
+        return teamName.Length > 3 ? teamName[..3].ToUpperInvariant() : teamName.ToUpperInvariant();
+    }
+
+    private void BeginDrag(DateTime day) {
+        var normalized = day.Date;
+        _isDragging = true;
+        _dragSelectMode = !_selectedDays.Contains(normalized);
+        UpdateSelection(normalized);
+    }
+
+    private void ContinueDrag(DateTime day) {
+        if (!_isDragging) {
+            return;
+        }
+
+        UpdateSelection(day.Date);
+    }
+
+    private void EndDrag() {
+        _isDragging = false;
+    }
+
+    private void UpdateSelection(DateTime day) {
+        if (_dragSelectMode) {
+            _selectedDays.Add(day);
+        }
+        else {
+            _selectedDays.Remove(day);
+        }
+    }
+
+    private void ClearSelection() {
+        _selectedDays.Clear();
+    }
+
+    private void AssignSelectedDays() {
+        if (!_selectedTeamForRange.HasValue || _selectedDays.Count == 0) {
+            return;
+        }
+
+        foreach (var selectedDay in _selectedDays) {
+            _teamByDate[selectedDay] = _selectedTeamForRange.Value;
+        }
+
+        _selectedDays.Clear();
+    }
+}
+

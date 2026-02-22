@@ -1,11 +1,12 @@
 ﻿@using WelpenWache.Core.Features.Intern.Models
 @using WelpenWache.Core
+@using WelpenWache.Components.Styling
 
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
             @* Header mit Datum und Statistik *@
-            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, #594ae2 0%, #7c3aed 100%); color: white; border-radius: 12px;">
+            <MudPaper Elevation="0" Class="pa-4 intern-dialog-header">
                 <MudStack Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Large"/>
@@ -25,7 +26,7 @@
                         <MudPaper Elevation="2" Class="pa-3 intern-dialog-card">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                                 @* Avatar mit Initialen *@
-                                <MudAvatar Color="Color.Primary" Size="Size.Large" Style="background: linear-gradient(135deg, #594ae2 0%, #7c3aed 100%);">
+                                <MudAvatar Color="Color.Primary" Size="Size.Large" Class="intern-dialog-avatar">
                                     @GetInitials(intern.Name, intern.Surname)
                                 </MudAvatar>
                                 
@@ -34,15 +35,32 @@
                                     <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
                                         @intern.Name @intern.Surname
                                     </MudText>
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.DateRange">
-                                            @intern.StartDate.ToString("dd.MM.yy") - @intern.EndDate.ToString("dd.MM.yy")
-                                        </MudChip>
-                                        <MudChip T="string" Size="Size.Small" Color="@(IsActiveToday(intern) ? Color.Success : Color.Default)" 
-                                                 Icon="@(IsActiveToday(intern) ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Circle)">
-                                            @(IsActiveToday(intern) ? "Heute aktiv" : GetDaysRemaining(intern))
-                                        </MudChip>
-                                    </MudStack>
+                                    @{
+                                        var isActive = IsActiveOnDate(intern, SelectedDate);
+                                        var teamName = GetTeamForDate(intern, SelectedDate);
+                                        var hasTeam = !string.Equals(teamName, "Kein Team", StringComparison.Ordinal);
+                                    }
+                                    <div class="intern-meta-row">
+                                        <div class="meta-pill meta-pill-date">
+                                            <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small"/>
+                                            <span>@intern.StartDate.ToString("dd.MM.yy") - @intern.EndDate.ToString("dd.MM.yy")</span>
+                                        </div>
+                                        <div class="@($"meta-pill {(isActive ? "meta-pill-active" : "meta-pill-muted")}")">
+                                            <MudIcon Icon="@(isActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Circle)" Size="Size.Small"/>
+                                            <span>@(isActive ? "An diesem Tag aktiv" : GetDaysRemaining(intern))</span>
+                                        </div>
+                                        @if (hasTeam) {
+                                            <div class="team-label team-color-scope" style="@TeamColorHelper.GetHueStyle(teamName)">
+                                                @teamName
+                                            </div>
+                                        }
+                                        else {
+                                            <div class="meta-pill meta-pill-muted">
+                                                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small"/>
+                                                <span>@teamName</span>
+                                            </div>
+                                        }
+                                    </div>
                                 </MudStack>
                             </MudStack>
                             
@@ -83,6 +101,9 @@
     [Parameter]
     public int Count { get; set; }
 
+    [Parameter]
+    public DateTime SelectedDate { get; set; }
+
     private void Cancel() => MudDialog.Cancel();
 
     private void NavigateToManage() => MudDialog.Close(DialogResult.Ok(true));
@@ -93,13 +114,17 @@
         return firstInitial + lastInitial;
     }
 
-    private static bool IsActiveToday(InternDto intern) {
-        var today = DateTime.Today;
-        return intern.StartDate.Date <= today && intern.EndDate.Date >= today;
+    private static bool IsActiveOnDate(InternDto intern, DateTime date) {
+        var day = date.Date;
+        return intern.StartDate.Date <= day && intern.EndDate.Date >= day;
     }
 
     private static double GetProgress(InternDto intern) {
         var total = (intern.EndDate - intern.StartDate).TotalDays;
+        if (total <= 0) {
+            return 100;
+        }
+
         var elapsed = (DateTime.Today - intern.StartDate).TotalDays;
         return Math.Min(100, Math.Max(0, (elapsed / total) * 100));
     }
@@ -116,10 +141,9 @@
         }
         return "Status unbekannt";
     }
+
+    private static string GetTeamForDate(InternDto intern, DateTime date) {
+        return intern.DayAssignments.FirstOrDefault(x => x.Date.Date == date.Date)?.TeamName ?? "Kein Team";
+    }
 }
-
-
-
-
-
 

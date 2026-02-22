@@ -1,4 +1,4 @@
-@page "/admin/users"
+﻿@page "/admin/users"
 @using WelpenWache.Core
 @using WelpenWache.Core.Database.Models
 @using WelpenWache.Core.Models
@@ -357,6 +357,12 @@
         Permissions.Intern_Read => "Intern - Lesen",
         Permissions.Intern_Update => "Intern - Bearbeiten",
         Permissions.Intern_Delete => "Intern - Löschen",
+        Permissions.Team_Create => "Team - Erstellen",
+        Permissions.Team_Read => "Team - Lesen",
+        Permissions.Team_Update => "Team - Bearbeiten",
+        Permissions.Team_Delete => "Team - Löschen",
         _ => permission.ToString()
     };
 }
+
+

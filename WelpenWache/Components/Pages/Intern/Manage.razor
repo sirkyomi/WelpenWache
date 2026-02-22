@@ -12,10 +12,8 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
     <MudPaper Elevation="4" Class="pa-6">
-        
-        @* Header Section *@
         <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6">
-            <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Color="Color.Primary" Size="Size.Large"/>
+            <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Color="Color.Primary" Size="Size.Large" />
             <div class="grow">
                 <MudText Typo="Typo.h5">Praktikanten verwalten</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
@@ -24,80 +22,37 @@
             </div>
             <AuthorizeView Policy="@Policies.Intern.CanCreate">
                 <Authorized>
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Add"
-                               OnClick="AddInternAsync"
-                               Size="Size.Large">
+                               OnClick="OpenCreateDialogAsync">
                         Hinzufügen
                     </MudButton>
                 </Authorized>
             </AuthorizeView>
         </MudStack>
 
-        <MudDivider Class="mb-4"/>
-        @* Table *@
-        <MudTable @ref="_table" 
-                  Items="@_interns" 
-                  Hover="true" 
-                  Breakpoint="Breakpoint.Sm" 
-                  Loading="@_fetching"
-                  LoadingProgressColor="Color.Primary" 
-                  EditTrigger="TableEditTrigger.RowClick"
-                  EditButtonPosition="TableEditButtonPosition.End"
-                  RowEditPreview="BackupItem" 
-                  RowEditCancel="ResetItemToOriginalValues" 
-                  RowEditCommit="ItemHasBeenCommitted"
-                  ReadOnly="@(!_canUpdate)"
+        <MudTable Items="@_interns"
                   Filter="new Func<InternDto, bool>(FilterInterns)"
+                  Hover="true"
+                  Breakpoint="Breakpoint.Sm"
+                  Loading="@_loading"
                   Elevation="0">
             <ToolBarContent>
-                <MudTextField @bind-Value="_searchString" 
-                              Placeholder="Suchen..." 
+                <MudTextField @bind-Value="_searchString"
+                              Placeholder="Suchen..."
                               Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search" 
-                              IconSize="Size.Medium"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
-                              Class="mt-0"
-                              Style="max-width: 400px;"
                               Immediate="true"
-                              DebounceInterval="300"/>
-                <MudSpacer/>
+                              Style="max-width: 420px;" />
             </ToolBarContent>
-            <ColGroup>
-                <col style="width: 40%"/>
-                <col style="width: 22%"/>
-                <col style="width: 22%"/>
-                <col style="width: 8%"/>
-                <col style="width: 8%"/>
-            </ColGroup>
             <HeaderContent>
-                <MudTh>
-                    <MudTableSortLabel SortBy="new Func<InternDto, object>(x => x.Name)">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
-                            <span>Name</span>
-                        </MudStack>
-                    </MudTableSortLabel>
-                </MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortBy="new Func<InternDto, object>(x => x.StartDate)">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudIcon Icon="@Icons.Material.Filled.Start" Size="Size.Small"/>
-                            <span>Beginn</span>
-                        </MudStack>
-                    </MudTableSortLabel>
-                </MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortBy="new Func<InternDto, object>(x => x.EndDate)">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small"/>
-                            <span>Ende</span>
-                        </MudStack>
-                    </MudTableSortLabel>
-                </MudTh>
-                <MudTh>Dauer</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Zeitraum</MudTh>
+                <MudTh>Teams</MudTh>
+                <MudTh>Heute</MudTh>
                 <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate Context="intern">
@@ -106,206 +61,139 @@
                         <MudAvatar Color="Color.Primary" Size="Size.Small">
                             @GetInitials(intern.Name, intern.Surname)
                         </MudAvatar>
-                        <MudText Typo="Typo.body2">
-                            <strong>@intern.Name @intern.Surname</strong>
-                        </MudText>
+                        <MudText Typo="Typo.body2"><strong>@intern.Name @intern.Surname</strong></MudText>
                     </MudStack>
                 </MudTd>
-                <MudTd DataLabel="Von">
-                    <MudText Typo="Typo.body2">@intern.StartDate.ToString("dd.MM.yyyy")</MudText>
+                <MudTd DataLabel="Zeitraum">
+                    <MudText Typo="Typo.body2">@intern.StartDate.ToString("dd.MM.yyyy") - @intern.EndDate.ToString("dd.MM.yyyy")</MudText>
                 </MudTd>
-                <MudTd DataLabel="Bis">
-                    <MudText Typo="Typo.body2">@intern.EndDate.ToString("dd.MM.yyyy")</MudText>
+                <MudTd DataLabel="Teams">
+                    <MudText Typo="Typo.body2">@GetTeamSummary(intern)</MudText>
                 </MudTd>
-                <MudTd DataLabel="Dauer">
-                    <MudText Typo="Typo.body2" Color="Color.Info">
-                        @((intern.EndDate - intern.StartDate).Days) Tage
-                    </MudText>
+                <MudTd DataLabel="Heute">
+                    @{
+                        var teamToday = GetTeamForDate(intern, DateTime.Today);
+                    }
+                    @if (!string.IsNullOrWhiteSpace(teamToday)) {
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@teamToday</MudChip>
+                    }
+                    else {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Kein Team</MudText>
+                    }
                 </MudTd>
-                <MudTd>
-                    <AuthorizeView Policy="@Policies.Intern.CanDelete" Context="deleteAuth">
-                        <Authorized>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="() => DeleteIntern(intern)"/>
-                        </Authorized>
-                    </AuthorizeView>
+                <MudTd DataLabel="Aktionen">
+                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                        <AuthorizeView Policy="@Policies.Intern.CanUpdate">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="() => OpenEditDialogAsync(intern)" />
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@Policies.Intern.CanDelete">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="() => DeleteInternAsync(intern)" />
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudStack>
                 </MudTd>
             </RowTemplate>
-            <RowEditingTemplate Context="intern">
-                <MudTd DataLabel="Name">
-                    <MudStack Row="true" Spacing="2">
-                        <MudTextField @bind-Value="intern.Name" 
-                                      Label="Vorname"
-                                      Required
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"/>
-                        <MudTextField @bind-Value="intern.Surname" 
-                                      Label="Nachname"
-                                      Required
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"/>
-                    </MudStack>
-                </MudTd>
-                <MudTd colspan="4" DataLabel="Zeitraum">
-                    <MudDateRangePicker Label="Zeitraum" 
-                                        PickerVariant="PickerVariant.Inline" 
-                                        @bind-DateRange="_rangeWhileEditing"
-                                        Variant="Variant.Outlined"
-                                        Margin="Margin.Dense"
-                                        Modal="false"/>
-                </MudTd>
-            </RowEditingTemplate>
             <NoRecordsContent>
-                <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="pa-8">
-                    <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Large" Color="Color.Default"/>
-                    <MudText Typo="Typo.h6" Color="Color.Default">Keine Praktikanten gefunden</MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                        Fügen Sie Ihren ersten Praktikanten hinzu, um loszulegen.
-                    </MudText>
-                    <AuthorizeView Policy="@Policies.Intern.CanCreate">
-                        <Authorized>
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Primary" 
-                                       StartIcon="@Icons.Material.Filled.Add"
-                                       OnClick="AddInternAsync">
-                                Ersten Praktikanten hinzufügen
-                            </MudButton>
-                        </Authorized>
-                    </AuthorizeView>
-                </MudStack>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    Keine Praktikanten gefunden.
+                </MudAlert>
             </NoRecordsContent>
-            <LoadingContent>
-                <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="pa-8">
-                    <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Lade Praktikanten...</MudText>
-                </MudStack>
-            </LoadingContent>
         </MudTable>
     </MudPaper>
 </MudContainer>
 
 @code {
-    private bool _fetching = true;
+    private readonly List<InternDto> _interns = [];
+    private readonly DialogOptions _wizardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, CloseButton = true };
+    private bool _loading = true;
     private string? _searchString;
-    private List<InternDto> _interns = [];
-    private InternDto _internBeforeEdit = new() { Name = "", Surname = "" };
-    private DateRange _rangeWhileEditing = new();
-    private MudTable<InternDto> _table = null!;
-    private bool _canUpdate;
-    
-    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        await base.OnInitializedAsync();
-        
-        // Check if user has update permission
-        if (AuthenticationState != null) {
-            var authState = await AuthenticationState;
-            _canUpdate = authState.User.HasClaim(c => c.Type == nameof(Permissions) && c.Value == nameof(Permissions.Intern_Update));
-        }
-        
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync() {
+        _loading = true;
         try {
-            _interns = await InternService.GetInternsAsync();
+            var interns = await InternService.GetInternsAsync();
+            _interns.Clear();
+            _interns.AddRange(interns);
         }
         catch (Exception ex) {
             Snackbar.Add($"Fehler beim Laden der Praktikanten: {ex.Message}", Severity.Error);
         }
         finally {
-            _fetching = false;
+            _loading = false;
         }
     }
 
-    private void BackupItem(object item) {
-        if (item is not InternDto intern) return;
-        
-        _internBeforeEdit = new InternDto {
-            Id = intern.Id,
-            Name = intern.Name,
-            Surname = intern.Surname,
-            StartDate = intern.StartDate,
-            EndDate = intern.EndDate
+    private async Task OpenCreateDialogAsync() {
+        var dialog = await DialogService.ShowAsync<InternWizardDialog>("Praktikant hinzufügen", _wizardDialogOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialogAsync(InternDto intern) {
+        var parameters = new DialogParameters {
+            ["InternToEdit"] = intern
         };
-        _rangeWhileEditing = new DateRange(_internBeforeEdit.StartDate, _internBeforeEdit.EndDate);
-    }
 
-    private async void ItemHasBeenCommitted(object item) {
-        if (item is not InternDto intern) return;
-        
-        if (_rangeWhileEditing.Start == null || _rangeWhileEditing.End == null) {
-            Snackbar.Add("Ungültiger Zeitraum", Severity.Warning);
-            return;
-        }
-        
-        intern.StartDate = _rangeWhileEditing.Start.Value;
-        intern.EndDate = _rangeWhileEditing.End.Value;
-        
-        try {
-            await InternService.UpdateInternAsync(intern);
-            Snackbar.Add("Praktikant erfolgreich bearbeitet", Severity.Success);
-        }
-        catch (Exception ex) {
-            Snackbar.Add($"Fehler beim Speichern: {ex.Message}", Severity.Error);
-            ResetItemToOriginalValues(intern);
-        }
-        finally {
-            _rangeWhileEditing = new DateRange();
-            StateHasChanged();
+        var dialog = await DialogService.ShowAsync<InternWizardDialog>("Praktikant bearbeiten", parameters, _wizardDialogOptions);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) {
+            await LoadDataAsync();
         }
     }
 
-    private void ResetItemToOriginalValues(object item) {
-        if (item is not InternDto intern) return;
-        
-        intern.Id = _internBeforeEdit.Id;
-        intern.Name = _internBeforeEdit.Name;
-        intern.Surname = _internBeforeEdit.Surname;
-        intern.StartDate = _internBeforeEdit.StartDate;
-        intern.EndDate = _internBeforeEdit.EndDate;
-    }
-
-    private bool FilterInterns(InternDto intern) {
-        if (string.IsNullOrWhiteSpace(_searchString)) return true;
-        
-        return intern.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-               || intern.Surname.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-               || $"{intern.Name} {intern.Surname}".Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-               || intern.StartDate.ToString("dd.MM.yyyy").Contains(_searchString)
-               || intern.EndDate.ToString("dd.MM.yyyy").Contains(_searchString);
-    }
-
-    private async void DeleteIntern(InternDto intern) {
+    private async Task DeleteInternAsync(InternDto intern) {
         try {
             await InternService.DeleteInternAsync(intern.Id);
             _interns.Remove(intern);
-            _table.SetEditingItem(null);
-            Snackbar.Add($"{intern.Name} {intern.Surname} erfolgreich gelöscht", Severity.Success);
+            Snackbar.Add($"{intern.Name} {intern.Surname} wurde gelöscht.", Severity.Success);
         }
         catch (Exception ex) {
             Snackbar.Add($"Fehler beim Löschen: {ex.Message}", Severity.Error);
         }
-        finally {
-            StateHasChanged();
-        }
     }
 
-    private async Task AddInternAsync() {
-        var dialog = await DialogService.ShowAsync<AddInternDialog>("Praktikant hinzufügen");
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false, Data: not null }) {
-            try {
-                _table.SetEditingItem(null);
-                if (Guid.TryParse(result.Data.ToString(), out var createdInternId)) {
-                    var newIntern = await InternService.GetInternAsync(createdInternId);
-                    _interns.Add(newIntern);
-                }
-            }
-            catch (Exception ex) {
-                Snackbar.Add($"Fehler beim Hinzufügen: {ex.Message}", Severity.Error);
-            }
+    private bool FilterInterns(InternDto intern) {
+        if (string.IsNullOrWhiteSpace(_searchString)) {
+            return true;
         }
+
+        var search = _searchString.Trim();
+        return intern.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
+               || intern.Surname.Contains(search, StringComparison.OrdinalIgnoreCase)
+               || $"{intern.Name} {intern.Surname}".Contains(search, StringComparison.OrdinalIgnoreCase)
+               || GetTeamSummary(intern).Contains(search, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetTeamSummary(InternDto intern) {
+        var teamNames = intern.DayAssignments
+            .Select(x => x.TeamName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
+        return teamNames.Count == 0 ? "Kein Team" : string.Join(", ", teamNames);
+    }
+
+    private static string? GetTeamForDate(InternDto intern, DateTime date) {
+        return intern.DayAssignments
+            .FirstOrDefault(x => x.Date.Date == date.Date)
+            ?.TeamName;
     }
 
     private static string GetInitials(string name, string surname) {
@@ -314,3 +202,4 @@
         return firstInitial + lastInitial;
     }
 }
+

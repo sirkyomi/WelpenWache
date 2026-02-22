@@ -11,3 +11,28 @@ html, body {
     flex-direction: column;
     height: 100%;
 }
+
+.team-color-scope {
+    --team-base: hsl(var(--team-hue, 205) 55% 58%);
+    --team-surface: color-mix(in srgb, var(--mud-palette-surface) 84%, var(--team-base) 16%);
+    --team-fill: color-mix(in srgb, var(--mud-palette-surface) 70%, var(--team-base) 30%);
+    --team-border: color-mix(in srgb, var(--mud-palette-divider) 62%, var(--team-base) 38%);
+    --team-accent: color-mix(in srgb, var(--team-base) 64%, var(--mud-palette-text-primary) 36%);
+    --team-text: var(--mud-palette-text-primary);
+}
+
+.team-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    max-width: 100%;
+    border: 1px solid var(--team-border);
+    border-radius: 10px;
+    padding: 4px 10px;
+    background: var(--team-fill);
+    color: var(--team-text);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    overflow-wrap: anywhere;
+}

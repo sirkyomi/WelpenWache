@@ -12,6 +12,13 @@
             </MudNavGroup>
         </Authorized>
     </AuthorizeView>
+    <AuthorizeView Policy="@Policies.Team.CanRead" Context="teamReadAuth">
+        <Authorized>
+            <MudNavGroup Title="Teams" Icon="@Icons.Material.Filled.Groups" Expanded Disabled="@_setupRequired">
+                <MudNavLink Href="team/manage" Icon="@Icons.Material.Filled.GroupWork" Match="NavLinkMatch.All" Disabled="@_setupRequired">Verwalten</MudNavLink>
+            </MudNavGroup>
+        </Authorized>
+    </AuthorizeView>
     <MudNavGroup Title="Auszubildende" Icon="@Icons.Material.Filled.BusinessCenter" Disabled>
         <MudNavLink Href="trainee/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Übersicht</MudNavLink>
         <MudNavLink Href="trainee/manage" Icon="@Icons.Material.Filled.AllInbox" Match="NavLinkMatch.All">Verwalten</MudNavLink>
